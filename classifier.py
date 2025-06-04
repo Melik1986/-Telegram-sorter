@@ -73,7 +73,14 @@ class ContentClassifier:
             
         except Exception as e:
             logger.error(f"Classification error: {e}")
-            return None
+            # Fallback to pattern-based classification
+            fallback_category = self.classify_by_patterns(content)
+            return {
+                'category': fallback_category,
+                'confidence': 0.6,
+                'description': f'Классифицировано по паттернам как {fallback_category}',
+                'subcategory': None
+            }
     
     def _create_classification_prompt(self, content: str) -> str:
         """Create classification prompt for OpenAI."""
@@ -143,10 +150,10 @@ Respond with JSON only, no additional text.
         return cleaned_result
     
     def classify_by_patterns(self, content: str) -> str:
-        """Fallback classification using text patterns."""
+        """Enhanced fallback classification using text patterns."""
         content_lower = content.lower()
         
-        # Code patterns
+        # Code patterns (enhanced)
         code_patterns = [
             r'def\s+\w+\s*\(',  # Python functions
             r'function\s+\w+\s*\(',  # JavaScript functions
@@ -154,29 +161,77 @@ Respond with JSON only, no additional text.
             r'import\s+\w+',  # Import statements
             r'#include\s*<\w+>',  # C/C++ includes
             r'```[\w]*\n',  # Code blocks
+            r'<\w+[^>]*>.*</\w+>',  # HTML tags
+            r'{\s*["\w]+\s*:\s*["\w]+',  # JSON objects
+            r'public\s+class\s+\w+',  # Java classes
+            r'const\s+\w+\s*=',  # JavaScript const
+            r'var\s+\w+\s*=',  # Variable declarations
+            r'\$\w+\s*=',  # PHP variables
         ]
         
-        if any(re.search(pattern, content) for pattern in code_patterns):
+        # Code repository patterns
+        code_repo_keywords = ['github.com', 'gitlab.com', 'bitbucket.org', 'repository', 'repo', 'source code', 'git clone']
+        
+        # Programming language keywords
+        programming_languages = ['python', 'javascript', 'java', 'cpp', 'c++', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'typescript', 'react', 'vue', 'angular', 'node.js', 'django', 'flask', 'spring']
+        
+        # Check for code patterns first
+        if any(re.search(pattern, content, re.IGNORECASE) for pattern in code_patterns):
             return 'code_examples'
         
-        # Video patterns
-        video_keywords = ['youtube.com', 'vimeo.com', 'youtu.be', 'video', 'watch', 'tutorial video']
-        if any(keyword in content_lower for keyword in video_keywords):
+        # Check for code repositories
+        if any(keyword in content_lower for keyword in code_repo_keywords):
+            return 'code_examples'
+        
+        # Check for programming languages
+        if any(lang in content_lower for lang in programming_languages):
+            # If mentioned with tutorial keywords, classify as tutorial
+            tutorial_keywords = ['tutorial', 'how to', 'step by step', 'guide', 'learn', 'course', 'урок', 'обучение']
+            if any(keyword in content_lower for keyword in tutorial_keywords):
+                return 'tutorials'
+            else:
+                return 'code_examples'
+        
+        # Video patterns (enhanced)
+        video_keywords = ['youtube.com', 'vimeo.com', 'youtu.be', 'video', 'watch', 'видео', 'смотреть']
+        video_domains = ['youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv']
+        if any(keyword in content_lower for keyword in video_keywords) or any(domain in content_lower for domain in video_domains):
             return 'videos'
         
-        # Tutorial patterns
-        tutorial_keywords = ['tutorial', 'how to', 'step by step', 'guide', 'learn', 'course']
+        # Tutorial patterns (enhanced)
+        tutorial_keywords = ['tutorial', 'how to', 'step by step', 'guide', 'learn', 'course', 'урок', 'обучение', 'пошагово', 'руководство']
         if any(keyword in content_lower for keyword in tutorial_keywords):
             return 'tutorials'
         
-        # Documentation patterns
-        doc_keywords = ['documentation', 'docs', 'api reference', 'manual', 'readme']
+        # Documentation patterns (enhanced)
+        doc_keywords = ['documentation', 'docs', 'api reference', 'manual', 'readme', 'документация', 'справочник']
         if any(keyword in content_lower for keyword in doc_keywords):
             return 'documentation'
         
-        # Tool patterns
-        tool_keywords = ['tool', 'utility', 'software', 'application', 'download']
+        # Design/Mockup patterns
+        design_keywords = ['figma', 'sketch', 'adobe', 'design', 'mockup', 'wireframe', 'prototype', 'ui', 'ux', 'дизайн', 'макет']
+        if any(keyword in content_lower for keyword in design_keywords):
+            return 'mockups'
+        
+        # Library patterns
+        library_keywords = ['library', 'package', 'npm', 'pip install', 'composer', 'библиотека', 'пакет']
+        if any(keyword in content_lower for keyword in library_keywords):
+            return 'libraries'
+        
+        # Framework patterns
+        framework_keywords = ['framework', 'boilerplate', 'template', 'фреймворк', 'шаблон']
+        frameworks = ['react', 'vue', 'angular', 'django', 'flask', 'spring', 'laravel', 'express']
+        if any(keyword in content_lower for keyword in framework_keywords) or any(fw in content_lower for fw in frameworks):
+            return 'frameworks'
+        
+        # Tool patterns (enhanced)
+        tool_keywords = ['tool', 'utility', 'software', 'application', 'download', 'инструмент', 'утилита', 'программа']
         if any(keyword in content_lower for keyword in tool_keywords):
             return 'tools'
+        
+        # Article patterns
+        article_keywords = ['article', 'blog', 'post', 'статья', 'блог']
+        if any(keyword in content_lower for keyword in article_keywords):
+            return 'articles'
         
         return 'other'
