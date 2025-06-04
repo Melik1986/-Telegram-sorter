@@ -8,6 +8,7 @@ import os
 import re
 from openai import OpenAI
 from utils import analyze_url_content
+from config import get_openai_key
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +35,8 @@ class ContentClassifier:
         """Classify content using OpenAI API."""
         try:
             # Check if API key is valid OpenAI format
-            api_key = os.getenv('OPENAI_API_KEY', '')
-            if not api_key.startswith('sk-'):
+            api_key = get_openai_key()
+            if not api_key:
                 logger.info("Using pattern-based classification (OpenAI key not configured)")
                 fallback_category = self.classify_by_patterns(content)
                 return {
@@ -44,6 +45,9 @@ class ContentClassifier:
                     'description': f'Улучшенная классификация по паттернам: {fallback_category}',
                     'subcategory': None
                 }
+                
+            # Update client with correct API key
+            self.client = OpenAI(api_key=api_key)
             
             # Prepare content for analysis
             analysis_content = content
