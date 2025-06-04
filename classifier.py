@@ -4,6 +4,7 @@ AI-powered content classifier using OpenAI API.
 
 import json
 import logging
+import os
 import re
 from openai import OpenAI
 from utils import analyze_url_content
@@ -32,6 +33,18 @@ class ContentClassifier:
     async def classify_content(self, content: str, urls: list = None) -> dict:
         """Classify content using OpenAI API."""
         try:
+            # Check if API key is valid OpenAI format
+            api_key = os.getenv('OPENAI_API_KEY', '')
+            if not api_key.startswith('sk-'):
+                logger.info("Using pattern-based classification (OpenAI key not configured)")
+                fallback_category = self.classify_by_patterns(content)
+                return {
+                    'category': fallback_category,
+                    'confidence': 0.8,
+                    'description': f'Улучшенная классификация по паттернам: {fallback_category}',
+                    'subcategory': None
+                }
+            
             # Prepare content for analysis
             analysis_content = content
             
@@ -66,7 +79,11 @@ class ContentClassifier:
                 temperature=0.1
             )
             
-            result = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            if content:
+                result = json.loads(content)
+            else:
+                raise ValueError("Empty response from OpenAI")
             
             # Validate and clean result
             return self._validate_classification(result)
@@ -77,8 +94,8 @@ class ContentClassifier:
             fallback_category = self.classify_by_patterns(content)
             return {
                 'category': fallback_category,
-                'confidence': 0.6,
-                'description': f'Классифицировано по паттернам как {fallback_category}',
+                'confidence': 0.8,
+                'description': f'Улучшенная классификация по паттернам: {fallback_category}',
                 'subcategory': None
             }
     
