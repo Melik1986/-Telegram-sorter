@@ -168,6 +168,34 @@ class ResourceStorage:
                 self.search_index[keyword] = set()
             self.search_index[keyword].add(resource_id)
     
+    def delete_resource(self, resource_id: str) -> bool:
+        """Delete a resource by ID."""
+        if resource_id not in self.resources:
+            return False
+        
+        resource = self.resources[resource_id]
+        category = resource['category']
+        
+        # Remove from resources
+        del self.resources[resource_id]
+        
+        # Remove from category index
+        if category in self.categories:
+            if resource_id in self.categories[category]:
+                self.categories[category].remove(resource_id)
+            if not self.categories[category]:  # Remove empty category
+                del self.categories[category]
+        
+        # Remove from search index
+        for keyword, resource_ids in self.search_index.items():
+            resource_ids.discard(resource_id)
+        
+        # Clean up empty search index entries
+        self.search_index = {k: v for k, v in self.search_index.items() if v}
+        
+        logger.info(f"Deleted resource {resource_id}")
+        return True
+    
     def export_data(self) -> str:
         """Export all data as JSON string."""
         export_data = {

@@ -9,18 +9,24 @@ import os
 import re
 import requests
 from src.utils.utils import analyze_url_content
-from src.core.config import get_ollama_config, is_ollama_available
+from src.core.config import get_ai_config, get_ollama_config, is_ollama_available, is_groq_available
 
 logger = logging.getLogger(__name__)
 
 class ContentClassifier:
     def __init__(self):
         """Initialize the classifier."""
+        self.ai_config = get_ai_config()
+        self.provider = self.ai_config['provider']
+        
+        # Legacy support
         self.ollama_config = get_ollama_config()
         self.ollama_available = is_ollama_available()
         
-        if not self.ollama_available:
-            logger.warning("Ollama not available. Using fallback classification.")
+        if self.provider == 'fallback':
+            logger.warning("No AI provider available. Using fallback classification.")
+        else:
+            logger.info(f"AI classifier initialized with provider: {self.provider}")
         
         # Define content categories with improved keywords
         self.categories = {
@@ -40,11 +46,11 @@ class ContentClassifier:
         }
     
     async def classify_content(self, content: str, urls: list = None) -> dict:
-        """Classify content using Ollama API."""
+        """Classify content using available AI provider."""
         try:
-            # Check if Ollama is available
-            if not self.ollama_available:
-                logger.info("Using pattern-based classification (Ollama not available)")
+            # Check if AI is available
+            if self.provider == 'fallback':
+                logger.info("Using pattern-based classification (no AI provider available)")
                 fallback_category = self.classify_by_patterns(content)
                 subcategory = self.get_subcategory_for_pattern(content, fallback_category)
                 return {
@@ -71,13 +77,18 @@ class ContentClassifier:
             # Create classification prompt
             prompt = self._create_classification_prompt(analysis_content)
             
-            # Make request to Ollama API
-            response = await self._call_ollama_api(prompt)
+            # Make request to AI API based on provider
+            if self.provider == 'groq':
+                response = await self._call_groq_api(prompt)
+            elif self.provider == 'ollama':
+                response = await self._call_ollama_api(prompt)
+            else:
+                raise ValueError(f"Unknown provider: {self.provider}")
             
             if response:
                 result = json.loads(response)
             else:
-                raise ValueError("Empty response from Ollama")
+                raise ValueError(f"Empty response from {self.provider}")
             
             # Validate and clean result
             return self._validate_classification(result)
@@ -100,6 +111,45 @@ class ContentClassifier:
                 'subcategory': subcategory,
                 'error': error_message
             }
+    
+    async def _call_groq_api(self, prompt: str) -> str:
+        """Make async request to Groq API."""
+        try:
+            from groq import Groq
+            
+            client = Groq(api_key=self.ai_config['api_key'])
+            
+            system_prompt = (
+                "You are an expert content classifier for developer resources. "
+                "Analyze content and classify it into appropriate categories. "
+                "Respond with JSON only, no additional text."
+            )
+            
+            # Use asyncio to make non-blocking request
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None,
+                lambda: client.chat.completions.create(
+                    model=self.ai_config['model'],
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.1,
+                    max_tokens=1000,
+                    timeout=30
+                )
+            )
+            
+            if response and response.choices:
+                return response.choices[0].message.content
+            else:
+                logger.error("Groq API returned empty response")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error calling Groq API: {e}")
+            return None
     
     async def _call_ollama_api(self, prompt: str) -> str:
         """Make async request to Ollama API."""

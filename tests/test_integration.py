@@ -19,7 +19,7 @@ class TestIntegration(unittest.TestCase):
             self.test_data = json.load(f)
         
         # Создаем экземпляр классификатора с тестовым API ключом
-        self.classifier = ContentClassifier(api_key="test_api_key")
+        self.classifier = ContentClassifier()
         
         # Создаем экземпляр сортировщика сообщений
         self.sorter = MessageSorter(classifier=self.classifier)

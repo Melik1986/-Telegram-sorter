@@ -14,7 +14,7 @@ class TestContentClassifier(unittest.TestCase):
     
     def setUp(self):
         # Создаем экземпляр классификатора для тестов
-        self.classifier = ContentClassifier(api_key="test_key")
+        self.classifier = ContentClassifier()
     
     @patch('classifier.get_openai_key')
     @patch('classifier.openai.ChatCompletion.create')

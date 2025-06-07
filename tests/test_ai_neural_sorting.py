@@ -19,14 +19,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.core.classifier import ContentClassifier
 from src.handlers.message_sorter import MessageSorter
-from src.core.bot import TelegramBot
+from src.core.bot import DevDataSorterBot
 
 class TestAINeuralSorting(unittest.TestCase):
     """Комплексные тесты для AI-сортировки контента."""
     
     def setUp(self):
         """Настройка тестового окружения."""
-        self.classifier = ContentClassifier(api_key="test_api_key")
+        self.classifier = ContentClassifier()
         self.sorter = MessageSorter(classifier=self.classifier)
         
         # Загружаем тестовые данные
@@ -282,7 +282,7 @@ class TestNeuralNetworkIntegration(unittest.TestCase):
     
     def setUp(self):
         """Настройка интеграционных тестов."""
-        self.classifier = ContentClassifier(api_key="test_key")
+        self.classifier = ContentClassifier()
         self.sorter = MessageSorter(classifier=self.classifier)
     
     def test_end_to_end_neural_pipeline(self):

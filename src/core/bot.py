@@ -1,664 +1,823 @@
-#!/usr/bin/env python3
-"""
-Telegram bot for DevDataSorter.
-Handles user interactions and content classification.
-"""
-
-import asyncio
 import logging
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from src.core.classifier import ContentClassifier
-from src.utils.storage import ResourceStorage
-from src.utils.utils import extract_urls, format_resource_list
-from src.core.config import get_telegram_token
-from src.utils.cache import get_cache_manager
-from scripts.backup import get_backup_manager
-from src.utils.rate_limiter import get_rate_limiter, get_command_rate_limiter
-from src.handlers.file_handler import get_file_handler
-from src.utils.i18n import get_i18n_manager, t
-from src.core.config import get_security_report
+import asyncio
+import os
+import re
+from typing import Optional, List, Dict, Any
+from datetime import datetime, timedelta
+from urllib.parse import urlparse
+
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram.constants import ParseMode
+
+from .classifier import ContentClassifier
+from .config import get_ai_config, TELEGRAM_BOT_TOKEN
+from ..utils.storage import ResourceStorage
+from ..utils.rate_limiter import RateLimiter
+from ..utils.i18n import I18nManager
+from ..handlers.file_handler import FileHandler
+from ..handlers.message_sorter import MessageSorter
 
 logger = logging.getLogger(__name__)
 
-class TelegramBot:
-    def __init__(self, bot_token):
-        """Initialize the Telegram bot with AI classifier and storage."""
-        self.bot_token = bot_token
-        self.classifier = ContentClassifier()
-        self.storage = ResourceStorage()
-        self.cache = get_cache_manager()
-        self.backup = get_backup_manager()
-        self.rate_limiter = get_rate_limiter()
-        self.command_rate_limiter = get_command_rate_limiter()
-        self.file_handler = get_file_handler()
-        self.i18n = get_i18n_manager()
-        self.app = Application.builder().token(bot_token).build()
-        self._setup_handlers()
-        
-        # Start automatic backup
-        self.backup.start_automatic_backup(self._get_storage_data)
-        
-        logger.info("Telegram bot initialized with all systems")
+class DevDataSorterBot:
+    """Main bot class for DevDataSorter."""
     
-    def _get_storage_data(self):
-        """Get current storage data for backup."""
-        return self.storage.get_all_resources()
+    def __init__(self, token: str = None):
+        self.token = token or TELEGRAM_BOT_TOKEN
+        self.ai_config = get_ai_config()
+        self.storage = ResourceStorage()
+        self.classifier = ContentClassifier()
+        self.rate_limiter = RateLimiter()
+        self.i18n = I18nManager()
+        self.file_handler = FileHandler()
+        self.message_sorter = MessageSorter(self.classifier)
+        
+        # Initialize Telegram application
+        self.app = Application.builder().token(self.token).build()
+        
+        # Add handlers
+        self._setup_handlers()
     
     def _setup_handlers(self):
-        """Set up command and message handlers."""
+        """Setup all bot handlers."""
         # Command handlers
         self.app.add_handler(CommandHandler("start", self.start_command))
         self.app.add_handler(CommandHandler("help", self.help_command))
-        self.app.add_handler(CommandHandler("add", self.add_command))
-        self.app.add_handler(CommandHandler("search", self.search_command))
-        self.app.add_handler(CommandHandler("categories", self.categories_command))
         self.app.add_handler(CommandHandler("list", self.list_command))
-        
-        # New commands
-        self.app.add_handler(CommandHandler("stats", self.stats_command))
-        self.app.add_handler(CommandHandler("backup", self.backup_command))
-        self.app.add_handler(CommandHandler("cache", self.cache_command))
-        self.app.add_handler(CommandHandler("limits", self.limits_command))
+        self.app.add_handler(CommandHandler("search", self.search_command))
         self.app.add_handler(CommandHandler("export", self.export_command))
-        self.app.add_handler(CommandHandler("import", self.import_command))
-        self.app.add_handler(CommandHandler("clear", self.clear_command))
-        # self.app.add_handler(CommandHandler("security", self.security_command))
-        # self.app.add_handler(CommandHandler("language", self.language_command))
+        self.app.add_handler(CommandHandler("stats", self.stats_command))
         
-        # File handlers
+        # Message handlers
+        self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
         self.app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
         self.app.add_handler(MessageHandler(filters.Document.ALL, self.handle_document))
         
-        # Message handler for content classification
-        self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
+        # Callback query handler
+        self.app.add_handler(CallbackQueryHandler(self.handle_callback_query))
     
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command."""
-        user_id = update.effective_user.id
+        welcome_text = (
+            "🤖 **DevDataSorter Bot** / Бот для сортировки данных\n\n"
+            "📝 **What I can do / Что я умею:**\n"
+            "• Classify and store your content / Классифицировать и сохранять контент\n"
+            "• Answer questions intelligently / Отвечать на вопросы\n"
+            "• Search through saved resources / Искать по сохраненным ресурсам\n"
+            "• Export your data / Экспортировать данные\n\n"
+            "📋 **Commands / Команды:**\n"
+            "• `/help` - Show help / Показать справку\n"
+            "• `/list [category]` - List resources / Список ресурсов\n"
+            "• `/search <query>` - Search resources / Поиск ресурсов\n"
+            "• `/export` - Export data / Экспорт данных\n"
+            "• `/stats` - Show statistics / Показать статистику\n\n"
+            "💡 **Just send me any content and I'll help organize it!**\n"
+            "💡 **Просто отправьте мне любой контент, и я помогу его организовать!**"
+        )
         
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'start')
-        if not allowed:
-            await update.message.reply_text(t('errors.rate_limit', user_id))
-            return
-        
-        welcome_text = self.i18n.get_welcome_message(user_id)
-        await update.message.reply_text(welcome_text)
+        await update.message.reply_text(welcome_text, parse_mode=ParseMode.MARKDOWN)
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command."""
-        user_id = update.effective_user.id
+        help_text = (
+            "🆘 **Help / Справка**\n\n"
+            "**📤 Sending Content / Отправка контента:**\n"
+            "• Text messages / Текстовые сообщения\n"
+            "• Images with descriptions / Изображения с описаниями\n"
+            "• Documents (PDF, DOC, etc.) / Документы\n"
+            "• URLs and links / URL и ссылки\n\n"
+            "**🔍 Searching / Поиск:**\n"
+            "• `/search python tutorial` - Find Python tutorials\n"
+            "• `/search категория:код` - Search in specific category\n\n"
+            "**📋 Listing / Просмотр:**\n"
+            "• `/list` - Show all resources / Показать все ресурсы\n"
+            "• `/list code` - Show code resources / Показать код\n\n"
+            "**📊 Other / Другое:**\n"
+            "• `/stats` - View statistics / Статистика\n"
+            "• `/export` - Download your data / Скачать данные\n\n"
+            "**🤖 AI Features / ИИ функции:**\n"
+            "• Ask questions / Задавайте вопросы\n"
+            "• Get explanations / Получайте объяснения\n"
+            "• Request help / Просите помощь"
+        )
         
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'help')
-        if not allowed:
-            await update.message.reply_text(t('errors.rate_limit', user_id))
-            return
-        
-        help_text = self.i18n.get_help_message(user_id)
-        await update.message.reply_text(help_text)
-    
-    async def add_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /add command to manually add resources."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'add')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        if not context.args:
-            await update.message.reply_text(
-                "Пожалуйста, укажите контент для добавления.\n"
-                "Please specify content to add.\n"
-                "Пример/Example: /add https://example.com"
-            )
-            return
-        
-        content = " ".join(context.args)
-        await self._process_content(update, content, manual=True)
-    
-    async def search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /search command to search for resources."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'search')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        if not context.args:
-            await update.message.reply_text(
-                "❌ Пожалуйста, укажите поисковый запрос.\n"
-                "Пример: /search Python tutorial\n\n"
-                "❌ Please provide a search query.\n"
-                "Example: /search Python tutorial"
-            )
-            return
-        
-        query = " ".join(context.args)
-        
-        # Check cache first
-        cache_key = f"search:{query}"
-        cached_results = self.cache.get(cache_key)
-        
-        if cached_results:
-            results = cached_results
-        else:
-            results = self.storage.search_resources(query)
-            # Cache results for 5 minutes
-            self.cache.set(cache_key, results, ttl=300)
-        
-        if not results:
-            await update.message.reply_text(
-                f"🔍 По запросу '{query}' ничего не найдено.\n"
-                f"🔍 No results found for '{query}'."
-            )
-            return
-        
-        response = f"🔍 Результаты поиска для '{query}' / Search results for '{query}':\n\n"
-        
-        for resource_id, resource in results[:10]:  # Limit to 10 results
-            category_emoji = self._get_category_emoji(resource['category'])
-            response += f"{category_emoji} **{resource['category']}**\n"
-            response += f"📝 {resource['description'][:100]}{'...' if len(resource['description']) > 100 else ''}\n"
-            if resource.get('url'):
-                response += f"🔗 {resource['url']}\n"
-            response += f"🆔 ID: `{resource_id}`\n\n"
-        
-        if len(results) > 10:
-            response += f"... и еще {len(results) - 10} результатов / ... and {len(results) - 10} more results"
-        
-        await update.message.reply_text(response, parse_mode='Markdown')
-    
-    async def categories_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /categories command to show all categories."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'categories')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        # Check cache first
-        cache_key = "categories"
-        cached_categories = self.cache.get(cache_key)
-        
-        if cached_categories:
-            categories = cached_categories
-        else:
-            categories = self.storage.get_categories_summary()
-            # Cache categories for 2 minutes
-            self.cache.set(cache_key, categories, ttl=120)
-        
-        if not categories:
-            await update.message.reply_text(
-                "📂 Пока нет сохраненных категорий.\n"
-                "📂 No saved categories yet."
-            )
-            return
-        
-        response = "📂 Доступные категории / Available categories:\n\n"
-        
-        for category, count in categories.items():
-            emoji = self._get_category_emoji(category)
-            response += f"{emoji} **{category}** ({count} ресурсов/resources)\n"
-        
-        response += "\n💡 Используйте /list [category] для просмотра ресурсов категории\n"
-        response += "💡 Use /list [category] to view category resources"
-        
-        await update.message.reply_text(response, parse_mode='Markdown')
-    
-    async def list_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /list command to show resources, optionally filtered by category."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'list')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        category_filter = None
-        if context.args:
-            category_filter = " ".join(context.args).lower()
-        
-        # Check cache first
-        cache_key = f"list:{category_filter or 'all'}"
-        cached_resources = self.cache.get(cache_key)
-        
-        if cached_resources:
-            resources = cached_resources
-        else:
-            resources = self.storage.get_all_resources()
-            
-            if category_filter:
-                resources = {rid: res for rid, res in resources.items() 
-                            if res['category'].lower() == category_filter}
-            
-            # Cache results for 2 minutes
-            self.cache.set(cache_key, resources, ttl=120)
-        
-        if not resources:
-            if category_filter:
-                await update.message.reply_text(
-                    f"📂 В категории '{category_filter}' нет ресурсов.\n"
-                    f"📂 No resources in category '{category_filter}'."
-                )
-            else:
-                await update.message.reply_text(
-                    "📂 Пока нет сохраненных ресурсов.\n"
-                    "📂 No saved resources yet."
-                )
-            return
-        
-        # Limit to 20 resources to avoid message length issues
-        resource_items = list(resources.items())[:20]
-        
-        if category_filter:
-            response = f"📂 Ресурсы в категории '{category_filter}' / Resources in category '{category_filter}':\n\n"
-        else:
-            response = "📂 Все ресурсы / All resources:\n\n"
-        
-        for resource_id, resource in resource_items:
-            category_emoji = self._get_category_emoji(resource['category'])
-            response += f"{category_emoji} **{resource['category']}**\n"
-            response += f"📝 {resource['description'][:100]}{'...' if len(resource['description']) > 100 else ''}\n"
-            if resource.get('url'):
-                response += f"🔗 {resource['url']}\n"
-            response += f"🆔 ID: `{resource_id}`\n\n"
-        
-        if len(resources) > 20:
-            response += f"... и еще {len(resources) - 20} ресурсов / ... and {len(resources) - 20} more resources\n"
-            response += "💡 Используйте /search для поиска конкретных ресурсов / Use /search to find specific resources"
-        
-        await update.message.reply_text(response, parse_mode='Markdown')
+        await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle incoming messages for automatic classification."""
+        """Handle incoming text messages."""
+        user_id = update.effective_user.id
         content = update.message.text
-        await self._process_content(update, content, manual=False)
+        
+        # Rate limiting
+        if not self.rate_limiter.is_allowed(user_id):
+            await update.message.reply_text(
+                "⏰ Too many requests. Please wait a moment.\n"
+                "⏰ Слишком много запросов. Подождите немного."
+            )
+            return
+        
+        # Determine if this is a question/request or content to classify
+        if await self._is_question_or_request(content):
+            await self._handle_intelligent_response(update, context, content)
+        else:
+            await self._process_content(update, context, content)
     
-    async def _process_content(self, update: Update, content: str, manual: bool = False, file_info=None):
-        """Process and classify content."""
+    async def _is_question_or_request(self, content: str) -> bool:
+        """Determine if content is a question or request for AI response."""
+        content_lower = content.lower()
+        
+        # Question indicators
+        question_words = [
+            'что', 'как', 'где', 'когда', 'почему', 'зачем', 'какой', 'какая', 'какое', 'какие',
+            'what', 'how', 'where', 'when', 'why', 'which', 'who', 'whom', 'whose'
+        ]
+        
+        # Request indicators
+        request_words = [
+            'помоги', 'помощь', 'объясни', 'расскажи', 'покажи', 'найди', 'ищи',
+            'help', 'explain', 'tell', 'show', 'find', 'search', 'look'
+        ]
+        
+        # Check for question marks
+        if '?' in content:
+            return True
+        
+        # Check for question/request words
+        words = content_lower.split()
+        if any(word in question_words + request_words for word in words):
+            return True
+        
+        # Check for question patterns
+        question_patterns = [
+            r'^(что|как|где|когда|почему|зачем)',
+            r'^(what|how|where|when|why|which)',
+            r'(можешь|можете|could you|can you)',
+            r'(помоги|help me|помощь|assistance)'
+        ]
+        
+        for pattern in question_patterns:
+            if re.search(pattern, content_lower):
+                return True
+        
+        return False
+    
+    async def _handle_intelligent_response(self, update: Update, context: ContextTypes.DEFAULT_TYPE, content: str):
+        """Handle intelligent AI responses to questions and requests."""
         try:
             # Show typing indicator
-            await update.message.reply_text("🔄 Анализирую контент... / Analyzing content...")
+            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
             
-            # Extract URLs if present
-            urls = extract_urls(content)
+            # Determine response type
+            response_type = await self._determine_response_type(content)
             
-            # Classify the content
-            classification = await self.classifier.classify_content(content, urls)
+            # Show appropriate indicator based on type
+            if response_type == 'search':
+                status_msg = await update.message.reply_text("🔍 Searching / Поиск...")
+            elif response_type == 'help':
+                status_msg = await update.message.reply_text("💡 Thinking / Думаю...")
+            elif response_type == 'technical':
+                status_msg = await update.message.reply_text("🔧 Analyzing / Анализирую...")
+            else:
+                status_msg = await update.message.reply_text("🤖 Processing / Обрабатываю...")
             
-            if not classification:
-                await update.message.reply_text(
-                    "❌ Не удалось классифицировать контент.\n"
-                    "Failed to classify content."
-                )
+            # Check if this is a search request
+            if await self._is_search_request(content):
+                await self._handle_search_from_message(update, context, content)
+                await status_msg.delete()
                 return
             
-            # Prepare additional data for file resources
-            additional_data = {}
-            if file_info:
-                additional_data.update({
-                    'file_type': file_info.get('file_type'),
-                    'file_size': file_info.get('file_size'),
-                    'mime_type': file_info.get('mime_type'),
-                    'file_path': file_info.get('file_path')
-                })
+            # Generate AI response
+            ai_response = await self.classifier.generate_response(content)
             
-            # Store the resource
-            resource_id = self.storage.add_resource(
-                content=content,
-                category=classification['category'],
-                user_id=update.effective_user.id,
-                username=update.effective_user.username,
-                subcategory=classification.get('subcategory'),
-                confidence=classification.get('confidence', 0.0),
-                description=classification.get('description', ''),
-                urls=urls,
-                **additional_data
+            if ai_response:
+                # Format response based on type
+                formatted_response = await self._format_intelligent_response(ai_response, response_type, content)
+                
+                # Delete status message and send response
+                await status_msg.delete()
+                await update.message.reply_text(formatted_response, parse_mode=ParseMode.MARKDOWN)
+            else:
+                # Fallback response
+                fallback_response = await self._generate_fallback_response(content, response_type)
+                await status_msg.delete()
+                await update.message.reply_text(fallback_response, parse_mode=ParseMode.MARKDOWN)
+                
+        except Exception as e:
+            logger.error(f"Error in intelligent response: {e}")
+            await update.message.reply_text(
+                "❌ Sorry, I couldn't process your request right now.\n"
+                "❌ Извините, не могу обработать ваш запрос прямо сейчас."
             )
+    
+    async def _determine_response_type(self, content: str) -> str:
+        """Determine the type of response needed based on content analysis."""
+        content_lower = content.lower()
+        
+        # Search indicators
+        if await self._is_search_request(content):
+            return 'search'
+        
+        # Help/guidance indicators
+        help_indicators = [
+            'помоги', 'помощь', 'как', 'что делать', 'не знаю', 'объясни', 'расскажи',
+            'help', 'how to', 'what should', 'explain', 'tell me', 'guide', 'tutorial'
+        ]
+        if any(indicator in content_lower for indicator in help_indicators):
+            return 'help'
+        
+        # Technical/programming indicators
+        tech_indicators = [
+            'код', 'программирование', 'алгоритм', 'функция', 'класс', 'библиотека', 'фреймворк',
+            'code', 'programming', 'algorithm', 'function', 'class', 'library', 'framework',
+            'python', 'javascript', 'java', 'c++', 'react', 'node', 'api', 'database'
+        ]
+        if any(indicator in content_lower for indicator in tech_indicators):
+            return 'technical'
+        
+        # Default to general
+        return 'general'
+    
+    async def _format_intelligent_response(self, ai_response: str, response_type: str, original_content: str) -> str:
+        """Format AI response based on response type and content."""
+        # Choose appropriate emoji and title based on type
+        type_config = {
+            'search': {'emoji': '🔍', 'title': 'Результат поиска / Search Result'},
+            'help': {'emoji': '💡', 'title': 'Справка / Help'},
+            'technical': {'emoji': '🔧', 'title': 'Техническая информация / Technical Info'},
+            'general': {'emoji': '🤖', 'title': 'AI Ответ / AI Response'}
+        }
+        
+        config = type_config.get(response_type, type_config['general'])
+        
+        # Format the main response
+        formatted_response = f"{config['emoji']} **{config['title']}:**\n\n{ai_response}\n\n"
+        
+        # Add contextual footer based on response type
+        if response_type == 'technical':
+            formatted_response += "💾 *Хотите сохранить этот код/информацию? Отправьте его отдельным сообщением*\n"
+            formatted_response += "💾 *Want to save this code/info? Send it as a separate message*"
+        elif response_type == 'help':
+            formatted_response += "📚 *Нужна дополнительная помощь? Задайте уточняющий вопрос*\n"
+            formatted_response += "📚 *Need more help? Ask a follow-up question*"
+        else:
+            formatted_response += "💡 *Если вы хотели сохранить этот контент, отправьте его еще раз*\n"
+            formatted_response += "💡 *If you wanted to save this content, send it again*"
+        
+        return formatted_response
+    
+    async def _generate_fallback_response(self, content: str, response_type: str) -> str:
+        """Generate fallback response when AI is unavailable."""
+        fallback_responses = {
+            'search': (
+                "🔍 **Search functionality temporarily unavailable**\n\n"
+                "Try using `/search <your query>` command instead.\n\n"
+                "🔍 **Поиск временно недоступен**\n\n"
+                "Попробуйте команду `/search <ваш запрос>`."
+            ),
+            'help': (
+                "💡 **Help system temporarily unavailable**\n\n"
+                "Please check `/help` command for basic information.\n\n"
+                "💡 **Система помощи временно недоступна**\n\n"
+                "Используйте команду `/help` для базовой информации."
+            ),
+            'technical': (
+                "🔧 **Technical analysis temporarily unavailable**\n\n"
+                "You can still save your content by sending it again.\n\n"
+                "🔧 **Технический анализ временно недоступен**\n\n"
+                "Вы можете сохранить контент, отправив его еще раз."
+            ),
+            'general': (
+                "🤖 **AI response temporarily unavailable**\n\n"
+                "I can still help you organize and save content!\n\n"
+                "🤖 **ИИ ответ временно недоступен**\n\n"
+                "Я все еще могу помочь организовать и сохранить контент!"
+            )
+        }
+        
+        return fallback_responses.get(response_type, fallback_responses['general'])
+    
+    async def _process_content(self, update: Update, context: ContextTypes.DEFAULT_TYPE, content: str):
+        """Process and classify content for storage."""
+        try:
+            # Preprocess content
+            processed_content = await self._preprocess_content(content)
             
-            # Format response
-            category_emoji = self._get_category_emoji(classification['category'])
-            confidence_text = f" ({classification.get('confidence', 0):.1%} уверенности)" if classification.get('confidence') else ""
+            # Extract URLs
+            urls = self._extract_urls(processed_content)
             
-            response = f"""
-✅ Контент успешно классифицирован! / Content successfully classified!
-
-{category_emoji} Категория / Category: {classification['category']}{confidence_text}
-📝 Описание / Description: {classification.get('description', 'Нет описания / No description')}
-🆔 ID: {resource_id}
-
-{f"🔗 URLs найдены / URLs found: {len(urls)}" if urls else ""}
-            """
+            # Classify content with enhanced logic
+            classification = await self.classifier.classify_content(processed_content)
             
-            if file_info:
-                response += f"\n📁 Тип файла / File type: {file_info.get('file_type', 'Unknown')}"
-                if file_info.get('file_size'):
-                    size_mb = file_info['file_size'] / (1024 * 1024)
-                    response += f"\n📏 Размер / Size: {size_mb:.2f} MB"
+            if not classification:
+                # Enhanced fallback classification
+                classification = await self._enhanced_fallback_classification(processed_content)
             
-            if classification.get('subcategory'):
-                response += f"\n📂 Подкатегория / Subcategory: {classification['subcategory']}"
-            
-            await update.message.reply_text(response.strip())
-            
+            if classification:
+                # Prepare additional data
+                additional_data = {
+                    'urls': urls,
+                    'timestamp': datetime.now().isoformat(),
+                    'user_id': update.effective_user.id,
+                    'message_id': update.message.message_id
+                }
+                
+                # Add resource to storage
+                resource_id = self.storage.add_resource(
+                    content=processed_content,
+                    category=classification['category'],
+                    user_id=update.effective_user.id,
+                    username=update.effective_user.username,
+                    description=classification['description'],
+                    urls=urls
+                )
+                
+                # Format success message
+                success_message = (
+                    f"✅ **Content classified and saved!**\n\n"
+                    f"📂 **Category:** {classification['category']}\n"
+                    f"📝 **Description:** {classification['description']}\n"
+                    f"🆔 **ID:** {resource_id}\n"
+                )
+                
+                if urls:
+                    success_message += f"🔗 **URLs found:** {len(urls)}\n"
+                
+                success_message += (
+                    f"\n✅ **Контент классифицирован и сохранен!**\n"
+                    f"📂 **Категория:** {classification['category']}\n"
+                    f"📝 **Описание:** {classification['description']}"
+                )
+                
+                await update.message.reply_text(success_message, parse_mode=ParseMode.MARKDOWN)
+            else:
+                await update.message.reply_text(
+                    "❌ Unable to classify content. Please try rephrasing or adding more context.\n"
+                    "❌ Не удалось классифицировать контент. Попробуйте переформулировать или добавить больше контекста."
+                )
+                
         except Exception as e:
             logger.error(f"Error processing content: {e}")
             await update.message.reply_text(
-                "❌ Произошла ошибка при обработке контента.\n"
-                "An error occurred while processing content."
+                "❌ Error processing content. Please try again.\n"
+                "❌ Ошибка обработки контента. Попробуйте еще раз."
             )
     
-    def _get_category_emoji(self, category: str) -> str:
-        """Get emoji for category."""
-        emoji_map = {
-            'code_examples': '💻',
-            'tutorials': '📚',
-            'videos': '🎥',
-            'mockups': '🎨',
-            'documentation': '📖',
-            'tools': '🔧',
-            'articles': '📰',
-            'libraries': '📦',
-            'frameworks': '🏗️',
-            'other': '📄'
+    async def _preprocess_content(self, content: str) -> str:
+        """Preprocess content before classification."""
+        # Remove extra whitespace
+        content = ' '.join(content.split())
+        
+        # Add URL context if URLs are present
+        urls = self._extract_urls(content)
+        if urls:
+            url_context = f"\n\nURLs: {', '.join(urls)}"
+            content += url_context
+        
+        # Detect and add technical content context
+        if self._is_technical_content(content):
+            content = f"[TECHNICAL CONTENT] {content}"
+        
+        return content
+    
+    def _is_technical_content(self, content: str) -> bool:
+        """Detect if content is technical/programming related."""
+        technical_indicators = [
+            'function', 'class', 'import', 'export', 'const', 'let', 'var',
+            'def', 'return', 'if', 'else', 'for', 'while', 'try', 'catch',
+            'async', 'await', 'promise', 'callback', 'api', 'endpoint',
+            'database', 'sql', 'query', 'select', 'insert', 'update',
+            'git', 'commit', 'push', 'pull', 'merge', 'branch',
+            'docker', 'kubernetes', 'deployment', 'server', 'client'
+        ]
+        
+        content_lower = content.lower()
+        return any(indicator in content_lower for indicator in technical_indicators)
+    
+    async def _enhanced_fallback_classification(self, content: str) -> Optional[Dict[str, Any]]:
+        """Enhanced fallback classification with AI assistance."""
+        try:
+            # Try AI-assisted classification
+            ai_classification = await self.classifier.classify_with_ai(content)
+            if ai_classification:
+                return ai_classification
+        except Exception as e:
+            logger.warning(f"AI classification failed: {e}")
+        
+        # Fallback to pattern-based classification
+        return self._pattern_based_classification(content)
+    
+    def _pattern_based_classification(self, content: str) -> Optional[Dict[str, Any]]:
+        """Pattern-based classification as final fallback."""
+        content_lower = content.lower()
+        
+        # Define patterns for different categories
+        patterns = {
+            'code': ['function', 'class', 'import', 'def', 'return', 'var', 'const', 'let'],
+            'documentation': ['readme', 'docs', 'documentation', 'guide', 'tutorial', 'how to'],
+            'link': ['http', 'https', 'www.', '.com', '.org', '.net'],
+            'note': ['note', 'remember', 'important', 'todo', 'task'],
+            'question': ['?', 'how', 'what', 'why', 'when', 'where']
         }
-        return emoji_map.get(category, '📄')
+        
+        # Score each category
+        scores = {}
+        for category, keywords in patterns.items():
+            score = sum(1 for keyword in keywords if keyword in content_lower)
+            if score > 0:
+                scores[category] = score
+        
+        if scores:
+            # Get category with highest score
+            best_category = max(scores, key=scores.get)
+            return {
+                'category': best_category,
+                'description': f"Auto-classified as {best_category} based on content patterns",
+                'confidence': min(scores[best_category] / len(patterns[best_category]), 1.0)
+            }
+        
+        return None
+    
+    def _extract_urls(self, text: str) -> List[str]:
+        """Extract URLs from text."""
+        url_pattern = r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+        return re.findall(url_pattern, text)
+    
+    async def _is_search_request(self, content: str) -> bool:
+        """Determine if content is a search request."""
+        content_lower = content.lower()
+        
+        # Extended search keywords
+        search_keywords = [
+            'найди', 'найти', 'поиск', 'ищи', 'искать', 'покажи', 'показать',
+            'find', 'search', 'look', 'show', 'get', 'retrieve', 'fetch',
+            'где', 'where', 'есть ли', 'is there', 'do you have'
+        ]
+        
+        # Question patterns that indicate search
+        search_patterns = [
+            r'(найди|find|search)\s+',
+            r'(где|where)\s+.*\?',
+            r'(есть ли|is there|do you have)\s+',
+            r'(покажи|show me)\s+'
+        ]
+        
+        # Check for search keywords
+        words = content_lower.split()
+        if any(keyword in words for keyword in search_keywords):
+            return True
+        
+        # Check for search patterns
+        for pattern in search_patterns:
+            if re.search(pattern, content_lower):
+                return True
+        
+        return False
+    
+    async def _handle_search_from_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE, content: str):
+        """Handle search request from a message."""
+        # Extract search terms
+        search_terms = self._extract_search_terms(content)
+        
+        if search_terms:
+            # Perform search
+            results = self.storage.search_resources(' '.join(search_terms))
+            
+            if results:
+                response = f"🔍 **Search Results for '{' '.join(search_terms)}':**\n\n"
+                
+                for i, result in enumerate(results[:5], 1):
+                    response += (
+                        f"{i}. **{result['category']}** - {result['description'][:100]}...\n"
+                        f"   🆔 ID: {result['id']}\n\n"
+                    )
+                
+                if len(results) > 5:
+                    response += f"... and {len(results) - 5} more results\n\n"
+                
+                response += "🔍 **Результаты поиска:**\n"
+                response += f"Найдено {len(results)} результатов"
+                
+                await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            else:
+                await update.message.reply_text(
+                    f"❌ No results found for '{' '.join(search_terms)}'.\n"
+                    f"❌ Ничего не найдено по запросу '{' '.join(search_terms)}'."
+                )
+        else:
+            await update.message.reply_text(
+                "❌ Couldn't understand what to search for. Please clarify.\n"
+                "❌ Не понял, что искать. Уточните запрос."
+            )
+    
+    def _extract_search_terms(self, content: str) -> List[str]:
+        """Extract search terms from content."""
+        # Remove common search words
+        stop_words = {
+            'найди', 'найти', 'поиск', 'ищи', 'искать', 'покажи', 'показать',
+            'find', 'search', 'look', 'show', 'get', 'retrieve', 'fetch',
+            'где', 'where', 'есть', 'ли', 'is', 'there', 'do', 'you', 'have',
+            'мне', 'me', 'для', 'for', 'по', 'about', 'про', 'о'
+        }
+        
+        words = content.lower().split()
+        search_terms = [word for word in words if word not in stop_words and len(word) > 2]
+        
+        return search_terms
+    
+    async def list_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /list command."""
+        try:
+            # Get category filter if provided
+            category_filter = None
+            if context.args:
+                category_filter = ' '.join(context.args).lower()
+            
+            # Get resources
+            if category_filter:
+                resources = self.storage.get_resources_by_category(category_filter)
+            else:
+                resources = self.storage.get_all_resources()
+            
+            if resources:
+                if category_filter:
+                    response = f"📂 **Resources in category '{category_filter}':**\n\n"
+                else:
+                    response = "📂 **All saved resources:**\n\n"
+                
+                for i, resource in enumerate(resources[:10], 1):
+                    response += (
+                        f"{i}. **{resource['category']}** - {resource['description'][:80]}...\n"
+                        f"   🆔 ID: {resource['id']} | 📅 {resource['created_at'][:10]}\n\n"
+                    )
+                
+                if len(resources) > 10:
+                    response += f"... and {len(resources) - 10} more resources\n\n"
+                
+                response += f"📊 Total: {len(resources)} resources"
+                
+                await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            else:
+                if category_filter:
+                    await update.message.reply_text(
+                        f"📂 No resources in category '{category_filter}'.\n"
+                        f"📂 Нет ресурсов в категории '{category_filter}'."
+                    )
+                else:
+                    await update.message.reply_text(
+                        "📂 No saved resources yet.\n"
+                        "📂 Пока нет сохраненных ресурсов."
+                    )
+                    
+        except Exception as e:
+            logger.error(f"Error in list command: {e}")
+            await update.message.reply_text(
+                "❌ Error retrieving resources.\n"
+                "❌ Ошибка получения ресурсов."
+            )
+    
+    async def search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /search command."""
+        if not context.args:
+            await update.message.reply_text(
+                "🔍 **Usage:** `/search <query>`\n"
+                "🔍 **Использование:** `/search <запрос>`\n\n"
+                "**Examples / Примеры:**\n"
+                "• `/search python tutorial`\n"
+                "• `/search категория:код`"
+            )
+            return
+        
+        query = ' '.join(context.args)
+        
+        try:
+            results = self.storage.search_resources(query)
+            
+            if results:
+                response = f"🔍 **Search Results for '{query}':**\n\n"
+                
+                for i, result in enumerate(results[:10], 1):
+                    response += (
+                        f"{i}. **{result['category']}** - {result['description'][:100]}...\n"
+                        f"   🆔 ID: {result['id']} | 📅 {result['created_at'][:10]}\n\n"
+                    )
+                
+                if len(results) > 10:
+                    response += f"... and {len(results) - 10} more results\n\n"
+                
+                response += f"📊 Found {len(results)} results"
+                
+                await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            else:
+                await update.message.reply_text(
+                    f"❌ No results found for '{query}'.\n"
+                    f"❌ Ничего не найдено по запросу '{query}'."
+                )
+                
+        except Exception as e:
+            logger.error(f"Error in search command: {e}")
+            await update.message.reply_text(
+                "❌ Search error. Please try again.\n"
+                "❌ Ошибка поиска. Попробуйте еще раз."
+            )
     
     async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /stats command to show bot statistics."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'stats')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        # Get statistics
-        all_resources = self.storage.get_all_resources()
-        categories = self.storage.get_categories()
-        cache_stats = self.cache.get_stats()
-        file_stats = self.file_handler.get_stats()
-        
-        response = "📊 Статистика бота / Bot Statistics:\n\n"
-        response += f"📚 Всего ресурсов / Total resources: {len(all_resources)}\n"
-        response += f"📂 Категорий / Categories: {len(categories)}\n\n"
-        
-        response += "📁 Файлы / Files:\n"
-        response += f"• Обработано изображений / Images processed: {file_stats.get('images_processed', 0)}\n"
-        response += f"• Обработано документов / Documents processed: {file_stats.get('documents_processed', 0)}\n"
-        response += f"• Размер кэша файлов / File cache size: {file_stats.get('cache_size_mb', 0):.1f} MB\n\n"
-        
-        response += "💾 Кэш / Cache:\n"
-        response += f"• Записей в кэше / Cache entries: {cache_stats.get('entries', 0)}\n"
-        response += f"• Попаданий / Hits: {cache_stats.get('hits', 0)}\n"
-        response += f"• Промахов / Misses: {cache_stats.get('misses', 0)}\n"
-        if cache_stats.get('hits', 0) + cache_stats.get('misses', 0) > 0:
-            hit_rate = cache_stats.get('hits', 0) / (cache_stats.get('hits', 0) + cache_stats.get('misses', 0)) * 100
-            response += f"• Эффективность / Hit rate: {hit_rate:.1f}%\n"
-        
-        await update.message.reply_text(response)
-    
-    async def backup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /backup command to create manual backup."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'backup')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
+        """Handle /stats command."""
         try:
-            backup_file = self.backup_manager.create_backup()
-            backups = self.backup_manager.list_backups()
+            stats = self.storage.get_statistics()
             
-            response = f"✅ Резервная копия создана / Backup created:\n"
-            response += f"📁 Файл / File: {backup_file}\n\n"
-            response += f"📊 Всего резервных копий / Total backups: {len(backups)}\n"
+            response = (
+                "📊 **Statistics / Статистика:**\n\n"
+                f"📂 **Total resources / Всего ресурсов:** {stats.get('total_resources', 0)}\n"
+                f"🏷️ **Categories / Категорий:** {stats.get('total_categories', 0)}\n"
+                f"📅 **This week / За неделю:** {stats.get('resources_this_week', 0)}\n"
+                f"📈 **This month / За месяц:** {stats.get('resources_this_month', 0)}\n\n"
+            )
             
-            if len(backups) > 5:
-                response += "\n💡 Рекомендуется очистить старые копии / Consider cleaning old backups"
+            # Top categories
+            if 'top_categories' in stats:
+                response += "🔝 **Top categories / Топ категории:**\n"
+                for category, count in stats['top_categories'][:5]:
+                    response += f"• {category}: {count}\n"
             
-            await update.message.reply_text(response)
+            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            
         except Exception as e:
+            logger.error(f"Error in stats command: {e}")
             await update.message.reply_text(
-                f"❌ Ошибка создания резервной копии / Backup creation error:\n{str(e)}"
+                "❌ Error retrieving statistics.\n"
+                "❌ Ошибка получения статистики."
             )
-    
-    async def cache_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /cache command for cache management."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'cache')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        if context.args and context.args[0].lower() == 'clear':
-            self.cache.clear()
-            await update.message.reply_text(
-                "✅ Кэш очищен / Cache cleared"
-            )
-            return
-        
-        stats = self.cache.get_stats()
-        response = "💾 Управление кэшем / Cache Management:\n\n"
-        response += f"📊 Записей / Entries: {stats.get('entries', 0)}\n"
-        response += f"📈 Попаданий / Hits: {stats.get('hits', 0)}\n"
-        response += f"📉 Промахов / Misses: {stats.get('misses', 0)}\n"
-        
-        if stats.get('hits', 0) + stats.get('misses', 0) > 0:
-            hit_rate = stats.get('hits', 0) / (stats.get('hits', 0) + stats.get('misses', 0)) * 100
-            response += f"🎯 Эффективность / Hit rate: {hit_rate:.1f}%\n"
-        
-        response += "\n💡 Используйте /cache clear для очистки\n"
-        response += "💡 Use /cache clear to clear cache"
-        
-        await update.message.reply_text(response)
-    
-    async def limits_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /limits command to show rate limit information."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'limits')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        response = "⚡ Лимиты запросов / Rate Limits:\n\n"
-        response += "📊 Общие лимиты / General limits:\n"
-        response += "• 30 запросов в минуту / 30 requests per minute\n"
-        response += "• 500 запросов в час / 500 requests per hour\n"
-        response += "• Burst: 5 запросов / 5 requests\n\n"
-        
-        response += "🔧 Лимиты команд / Command limits:\n"
-        response += "• /search: 10 в минуту / 10 per minute\n"
-        response += "• /add: 20 в минуту / 20 per minute\n"
-        response += "• /backup: 3 в час / 3 per hour\n"
-        response += "• Файлы / Files: 5 в минуту / 5 per minute\n\n"
-        
-        response += "💡 При превышении лимитов действует кулдаун\n"
-        response += "💡 Cooldown applies when limits are exceeded"
-        
-        await update.message.reply_text(response)
     
     async def export_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /export command to export data."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'export')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
+        """Handle /export command."""
         try:
-            import json
-            from datetime import datetime
-            
+            # Get all resources
             all_resources = self.storage.get_all_resources()
-            categories = self.storage.get_categories()
             
+            if not all_resources:
+                await update.message.reply_text(
+                    "📂 No data to export.\n"
+                    "📂 Нет данных для экспорта."
+                )
+                return
+            
+            # Create export data
             export_data = {
                 'export_date': datetime.now().isoformat(),
                 'total_resources': len(all_resources),
-                'categories': categories,
                 'resources': all_resources
             }
             
-            # Create export file
-            export_filename = f"devdatasorter_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            # Convert to JSON
+            import json
+            json_data = json.dumps(export_data, indent=2, ensure_ascii=False)
             
-            with open(export_filename, 'w', encoding='utf-8') as f:
-                json.dump(export_data, f, ensure_ascii=False, indent=2)
+            # Create file
+            filename = f"devdatasorter_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
             
-            # Send file to user
-            with open(export_filename, 'rb') as f:
-                await update.message.reply_document(
-                    document=f,
-                    filename=export_filename,
-                    caption=f"📤 Экспорт данных / Data export\n📊 Ресурсов: {len(all_resources)}\n📂 Категорий: {len(categories)}"
-                )
+            # Send as document
+            from io import BytesIO
+            file_buffer = BytesIO(json_data.encode('utf-8'))
+            file_buffer.name = filename
             
-            # Clean up
-            import os
-            os.remove(export_filename)
+            # Get categories for summary
+            categories = set(resource['category'] for resource in all_resources)
+            
+            await update.message.reply_document(
+                document=file_buffer,
+                caption=f"📤 Data export / Экспорт данных\n📊 Resources: {len(all_resources)}\n📂 Categories: {len(categories)}"
+            )
             
         except Exception as e:
+            logger.error(f"Error in export command: {e}")
             await update.message.reply_text(
-                f"❌ Ошибка экспорта / Export error:\n{str(e)}"
+                "❌ Export error. Please try again.\n"
+                "❌ Ошибка экспорта. Попробуйте еще раз."
             )
-    
-    async def import_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /import command to import data."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'import')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        await update.message.reply_text(
-            "📥 Импорт данных / Data Import:\n\n"
-            "Отправьте JSON файл с экспортированными данными для импорта.\n"
-            "Send a JSON file with exported data to import.\n\n"
-            "⚠️ Внимание: это добавит данные к существующим\n"
-            "⚠️ Warning: this will add data to existing resources"
-        )
-    
-    async def clear_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /clear command to clear data."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.rate_limiter.is_allowed(user_id, 'clear')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
-        if not context.args or context.args[0].lower() != 'confirm':
-            await update.message.reply_text(
-                "⚠️ Подтверждение очистки / Clear Confirmation:\n\n"
-                "Это действие удалит ВСЕ сохраненные ресурсы!\n"
-                "This action will delete ALL saved resources!\n\n"
-                "Для подтверждения используйте: /clear confirm\n"
-                "To confirm use: /clear confirm"
-            )
-            return
-        
-        # Clear all data
-        self.storage.resources.clear()
-        self.storage.categories.clear()
-        self.storage.search_index.clear()
-        self.cache.clear()
-        
-        await update.message.reply_text(
-            "✅ Все данные очищены / All data cleared\n\n"
-            "🔄 Бот готов к новой работе / Bot ready for new work"
-        )
     
     async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle photo uploads."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.command_rate_limiter.is_allowed(user_id, 'file')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
+        """Handle photo messages."""
         try:
-            await update.message.reply_text("📸 Обрабатываю изображение... / Processing image...")
+            # Get photo and caption
+            photo = update.message.photo[-1]  # Get highest resolution
+            caption = update.message.caption or "Image without description"
             
-            result = await self.file_handler.handle_photo(update.message.photo[-1], update.message.caption)
+            # Download photo
+            file = await context.bot.get_file(photo.file_id)
+            file_path = f"temp_image_{photo.file_id}.jpg"
+            await file.download_to_drive(file_path)
             
-            if result:
-                # Process the result through classification
-                content = f"Image: {result['description']}"
-                if result.get('text_content'):
-                    content += f"\nText found: {result['text_content']}"
+            try:
+                # Process image with file handler
+                image_analysis = await self.file_handler.process_image(file_path, caption)
                 
-                await self._process_content(update, content, file_info=result)
-            else:
-                await update.message.reply_text(
-                    "❌ Не удалось обработать изображение / Failed to process image"
-                )
+                # Combine caption and analysis
+                content = f"{caption}\n\nImage analysis: {image_analysis}"
                 
+                # Process as regular content
+                await self._process_content(update, context, content)
+                
+            finally:
+                # Clean up
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    
         except Exception as e:
             logger.error(f"Error handling photo: {e}")
             await update.message.reply_text(
-                f"❌ Ошибка обработки изображения / Image processing error:\n{str(e)}"
+                "❌ Failed to process image / Не удалось обработать изображение"
             )
     
     async def handle_document(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle document uploads."""
-        user_id = update.effective_user.id
-        
-        # Check rate limits
-        allowed, reason = self.command_rate_limiter.is_allowed(user_id, 'file')
-        if not allowed:
-            await update.message.reply_text(f"⚠️ {reason}")
-            return
-        
+        """Handle document messages."""
         try:
-            await update.message.reply_text("📄 Обрабатываю документ... / Processing document...")
+            document = update.message.document
+            caption = update.message.caption or "Document without description"
             
-            result = await self.file_handler.handle_document(update.message.document, update.message.caption)
-            
-            if result:
-                # Process the result through classification
-                content = f"Document: {result['description']}"
-                if result.get('text_content'):
-                    content += f"\nContent: {result['text_content'][:500]}..."
-                
-                await self._process_content(update, content, file_info=result)
-            else:
+            # Check file size (limit to 20MB)
+            if document.file_size > 20 * 1024 * 1024:
                 await update.message.reply_text(
-                    "❌ Не удалось обработать документ / Failed to process document"
+                    "❌ File too large (max 20MB) / Файл слишком большой (макс 20МБ)"
                 )
+                return
+            
+            # Download document
+            file = await context.bot.get_file(document.file_id)
+            file_path = f"temp_doc_{document.file_id}_{document.file_name}"
+            await file.download_to_drive(file_path)
+            
+            try:
+                # Process document with file handler
+                doc_analysis = await self.file_handler.process_document(file_path, caption)
                 
+                # Combine caption and analysis
+                content = f"{caption}\n\nDocument: {document.file_name}\nSize: {document.file_size} bytes\nAnalysis: {doc_analysis}"
+                
+                # Process as regular content
+                await self._process_content(update, context, content)
+                
+            finally:
+                # Clean up
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                    
         except Exception as e:
             logger.error(f"Error handling document: {e}")
             await update.message.reply_text(
-                f"❌ Ошибка обработки документа / Document processing error:\n{str(e)}"
+                "❌ Failed to process document / Не удалось обработать документ"
             )
+    
+    async def handle_callback_query(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle callback queries from inline keyboards."""
+        query = update.callback_query
+        await query.answer()
+        
+        # Handle different callback types
+        if query.data.startswith('view_'):
+            resource_id = query.data.split('_')[1]
+            await self._show_resource_details(query, resource_id)
+        elif query.data.startswith('delete_'):
+            resource_id = query.data.split('_')[1]
+            await self._delete_resource(query, resource_id)
+    
+    async def _show_resource_details(self, query, resource_id: str):
+        """Show detailed information about a resource."""
+        try:
+            resource = self.storage.get_resource(resource_id)
+            if resource:
+                response = (
+                    f"📄 **Resource Details:**\n\n"
+                    f"🆔 **ID:** {resource['id']}\n"
+                    f"📂 **Category:** {resource['category']}\n"
+                    f"📝 **Description:** {resource['description']}\n"
+                    f"📅 **Created:** {resource['created_at']}\n\n"
+                    f"📄 **Content:**\n{resource['content'][:500]}..."
+                )
+                
+                await query.edit_message_text(response, parse_mode=ParseMode.MARKDOWN)
+            else:
+                await query.edit_message_text("❌ Resource not found")
+                
+        except Exception as e:
+            logger.error(f"Error showing resource details: {e}")
+            await query.edit_message_text("❌ Error retrieving resource")
+    
+    async def _delete_resource(self, query, resource_id: str):
+        """Delete a resource."""
+        try:
+            success = self.storage.delete_resource(resource_id)
+            if success:
+                await query.edit_message_text("✅ Resource deleted successfully")
+            else:
+                await query.edit_message_text("❌ Failed to delete resource")
+                
+        except Exception as e:
+            logger.error(f"Error deleting resource: {e}")
+            await query.edit_message_text("❌ Error deleting resource")
     
     def run(self):
         """Start the bot."""
-        import asyncio
         logger.info("Starting DevDataSorter bot...")
         try:
             # Create event loop if it doesn't exist

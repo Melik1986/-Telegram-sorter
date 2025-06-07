@@ -18,14 +18,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.core.classifier import ContentClassifier
 from src.handlers.message_sorter import MessageSorter
-from src.core.bot import TelegramBot
+from src.core.bot import DevDataSorterBot
 
 class TestTelegramBotNeuralClassification(unittest.TestCase):
     """Тесты для телеграм бота с нейронной классификацией."""
     
     def setUp(self):
         """Настройка тестового окружения для телеграм бота."""
-        self.classifier = ContentClassifier(api_key="test_api_key")
+        self.classifier = ContentClassifier()
         self.sorter = MessageSorter(classifier=self.classifier)
     
     def test_telegram_message_types_classification(self):
@@ -384,7 +384,7 @@ class TestTelegramBotNeuralAdvanced(unittest.TestCase):
     
     def setUp(self):
         """Настройка продвинутых тестов."""
-        self.classifier = ContentClassifier(api_key="test_api_key")
+        self.classifier = ContentClassifier()
         self.sorter = MessageSorter(classifier=self.classifier)
     
     def test_neural_confidence_adaptation(self):

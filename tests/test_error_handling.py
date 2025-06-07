@@ -14,7 +14,7 @@ class TestErrorHandling(unittest.TestCase):
     
     def setUp(self):
         # Создаем экземпляр классификатора
-        self.classifier = ContentClassifier(api_key="test_api_key")
+        self.classifier = ContentClassifier()
         
         # Создаем экземпляр сортировщика сообщений
         self.sorter = MessageSorter(classifier=self.classifier)
