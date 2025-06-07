@@ -17,25 +17,27 @@ class ResourceStorage:
         self.categories = {}  # Dict[str, List[str]] - category -> list of resource_ids
         self.search_index = {}  # Dict[str, List[str]] - keyword -> list of resource_ids
     
-    def add_resource(self, content: str, category: str, subcategory: str = None, 
-                    confidence: float = 0.0, description: str = '', urls: list = None) -> str:
+    def add_resource(self, content: str, category: str, user_id: int, username: str = None, confidence: float = 0.0, description: str = "", urls: list = None, **kwargs) -> str:
         """Add a new resource to storage."""
-        resource_id = str(uuid.uuid4())[:8]  # Short UUID
+        resource_id = self._generate_id()
         
-        resource_data = {
+        resource = {
             'id': resource_id,
             'content': content,
             'category': category,
-            'subcategory': subcategory,
+            'user_id': user_id,
+            'username': username,
             'confidence': confidence,
             'description': description,
             'urls': urls or [],
             'timestamp': datetime.now().isoformat(),
-            'access_count': 0
+            'created_at': datetime.now().isoformat()
         }
         
-        # Store resource
-        self.resources[resource_id] = resource_data
+        # Add any additional fields (for file support)
+        resource.update(kwargs)
+        
+        self.resources[resource_id] = resource
         
         # Update category index
         if category not in self.categories:
@@ -43,16 +45,31 @@ class ResourceStorage:
         self.categories[category].append(resource_id)
         
         # Update search index
-        self._update_search_index(resource_id, content, description, category, subcategory)
+        search_text = f"{content} {category} {description}".lower()
+        # Include file-related fields in search if present
+        if 'file_type' in kwargs:
+            search_text += f" {kwargs['file_type']}"
+        if 'mime_type' in kwargs:
+            search_text += f" {kwargs['mime_type']}"
         
-        logger.info(f"Added resource {resource_id} to category {category}")
+        for word in search_text.split():
+            if word not in self.search_index:
+                self.search_index[word] = set()
+            self.search_index[word].add(resource_id)
+        
         return resource_id
+    
+    def _generate_id(self) -> str:
+        """Generate a short unique ID."""
+        return str(uuid.uuid4())[:8]
     
     def get_resource(self, resource_id: str) -> Optional[Dict]:
         """Get a specific resource by ID."""
         resource = self.resources.get(resource_id)
         if resource:
-            # Increment access count
+            # Increment access count if it exists
+            if 'access_count' not in resource:
+                resource['access_count'] = 0
             resource['access_count'] += 1
         return resource
     
@@ -76,7 +93,9 @@ class ResourceStorage:
             if (query_lower in resource['content'].lower() or
                 query_lower in resource['description'].lower() or
                 query_lower in resource['category'].lower() or
-                (resource['subcategory'] and query_lower in resource['subcategory'].lower())):
+                (resource.get('subcategory') and query_lower in resource['subcategory'].lower()) or
+                (resource.get('file_type') and query_lower in resource['file_type'].lower()) or
+                (resource.get('mime_type') and query_lower in resource['mime_type'].lower())):
                 matching_ids.add(resource_id)
         
         # Search in search index
@@ -86,7 +105,7 @@ class ResourceStorage:
         
         # Return sorted results (by relevance and timestamp)
         results = [self.resources[rid] for rid in matching_ids if rid in self.resources]
-        return sorted(results, key=lambda x: (x['confidence'], x['timestamp']), reverse=True)
+        return sorted(results, key=lambda x: (x.get('confidence', 0), x['timestamp']), reverse=True)
     
     def get_categories_summary(self) -> Dict[str, int]:
         """Get summary of all categories with resource counts."""
@@ -108,16 +127,24 @@ class ResourceStorage:
         # Average confidence
         avg_confidence = 0.0
         if total_resources > 0:
-            total_confidence = sum(r['confidence'] for r in self.resources.values())
+            total_confidence = sum(r.get('confidence', 0) for r in self.resources.values())
             avg_confidence = total_confidence / total_resources
+        
+        # File statistics
+        file_resources = sum(1 for r in self.resources.values() if r.get('file_type'))
         
         return {
             'total_resources': total_resources,
             'categories_count': categories_count,
             'popular_category': popular_category,
             'average_confidence': avg_confidence,
-            'total_urls': sum(len(r['urls']) for r in self.resources.values())
+            'total_urls': sum(len(r.get('urls', [])) for r in self.resources.values()),
+            'file_resources': file_resources
         }
+    
+    def get_categories(self) -> Dict[str, int]:
+        """Get all categories with resource counts."""
+        return {category: len(resource_ids) for category, resource_ids in self.categories.items()}
     
     def _update_search_index(self, resource_id: str, content: str, description: str, 
                            category: str, subcategory: str = None):
@@ -138,9 +165,8 @@ class ResourceStorage:
         # Update index
         for keyword in keywords:
             if keyword not in self.search_index:
-                self.search_index[keyword] = []
-            if resource_id not in self.search_index[keyword]:
-                self.search_index[keyword].append(resource_id)
+                self.search_index[keyword] = set()
+            self.search_index[keyword].add(resource_id)
     
     def export_data(self) -> str:
         """Export all data as JSON string."""
@@ -165,13 +191,16 @@ class ResourceStorage:
             # Rebuild search index
             self.search_index = {}
             for resource_id, resource in self.resources.items():
-                self._update_search_index(
-                    resource_id,
-                    resource['content'],
-                    resource['description'],
-                    resource['category'],
-                    resource.get('subcategory')
-                )
+                search_text = f"{resource['content']} {resource['category']} {resource.get('description', '')}".lower()
+                if resource.get('file_type'):
+                    search_text += f" {resource['file_type']}"
+                if resource.get('mime_type'):
+                    search_text += f" {resource['mime_type']}"
+                
+                for word in search_text.split():
+                    if word not in self.search_index:
+                        self.search_index[word] = set()
+                    self.search_index[word].add(resource_id)
             
             logger.info("Successfully imported data")
             return True

@@ -2,33 +2,43 @@
 AI-powered content classifier using OpenAI API.
 """
 
+import asyncio
 import json
 import logging
 import os
 import re
-from openai import OpenAI
+# Изменяем импорт для совместимости со старой версией OpenAI API
+import openai
 from utils import analyze_url_content
 from config import get_openai_key
 
 logger = logging.getLogger(__name__)
 
 class ContentClassifier:
-    def __init__(self, api_key):
-        """Initialize the classifier with OpenAI API."""
-        self.client = OpenAI(api_key=api_key)
+    def __init__(self, openai_api_key: str = None):
+        """Initialize the classifier."""
+        self.openai_api_key = openai_api_key
+        if openai_api_key:
+            self.client = OpenAI(api_key=openai_api_key)
+        else:
+            self.client = None
+            logger.warning("OpenAI API key not provided. Using fallback classification.")
         
-        # Category definitions
+        # Define content categories with improved keywords
         self.categories = {
-            'code_examples': 'Code snippets, example implementations, sample code',
-            'tutorials': 'Step-by-step guides, how-to articles, learning materials',
-            'videos': 'Video content, video tutorials, recorded presentations',
-            'mockups': 'UI/UX designs, wireframes, prototypes, design templates',
-            'documentation': 'API docs, technical documentation, reference materials',
-            'tools': 'Development tools, utilities, software applications',
-            'articles': 'Technical articles, blog posts, news',
-            'libraries': 'Code libraries, packages, modules',
-            'frameworks': 'Development frameworks, boilerplates',
-            'other': 'Content that doesn\'t fit other categories'
+            'documentation': ['docs', 'documentation', 'guide', 'tutorial', 'readme', 'manual', 'wiki', 'help', 'instructions'],
+            'code': ['code', 'programming', 'script', 'function', 'class', 'algorithm', 'source', 'implementation', 'snippet'],
+            'api': ['api', 'endpoint', 'rest', 'graphql', 'webhook', 'service', 'microservice', 'integration'],
+            'database': ['database', 'sql', 'query', 'schema', 'table', 'migration', 'mongodb', 'postgresql', 'mysql'],
+            'tools': ['tool', 'utility', 'software', 'application', 'plugin', 'extension', 'framework', 'library'],
+            'learning': ['course', 'tutorial', 'lesson', 'education', 'training', 'workshop', 'webinar', 'certification'],
+            'reference': ['reference', 'cheatsheet', 'quick', 'summary', 'overview', 'specification', 'standard'],
+            'design': ['design', 'ui', 'ux', 'mockup', 'wireframe', 'prototype', 'figma', 'sketch'],
+            'media': ['image', 'video', 'audio', 'photo', 'picture', 'screenshot', 'diagram', 'chart'],
+            'document': ['document', 'pdf', 'report', 'presentation', 'spreadsheet', 'text', 'file'],
+            'security': ['security', 'authentication', 'authorization', 'encryption', 'vulnerability', 'penetration'],
+            'devops': ['devops', 'deployment', 'ci/cd', 'docker', 'kubernetes', 'infrastructure', 'monitoring'],
+            'other': ['misc', 'general', 'various', 'other', 'uncategorized']
         }
     
     async def classify_content(self, content: str, urls: list = None) -> dict:
@@ -39,15 +49,16 @@ class ContentClassifier:
             if not api_key:
                 logger.info("Using pattern-based classification (OpenAI key not configured)")
                 fallback_category = self.classify_by_patterns(content)
+                subcategory = self.get_subcategory_for_pattern(content, fallback_category)
                 return {
                     'category': fallback_category,
                     'confidence': 0.8,
                     'description': f'Улучшенная классификация по паттернам: {fallback_category}',
-                    'subcategory': None
+                    'subcategory': subcategory
                 }
                 
             # Update client with correct API key
-            self.client = OpenAI(api_key=api_key)
+            openai.api_key = api_key
             
             # Prepare content for analysis
             analysis_content = content
@@ -66,10 +77,9 @@ class ContentClassifier:
             # Create classification prompt
             prompt = self._create_classification_prompt(analysis_content)
             
-            # the newest OpenAI model is "gpt-4o" which was released May 13, 2024.
-            # do not change this unless explicitly requested by the user
-            response = self.client.chat.completions.create(
-                model="gpt-4o",
+            # Используем старый API для создания запроса к OpenAI
+            response = openai.ChatCompletion.create(
+                model="gpt-4",  # gpt-4o недоступен в старой версии API
                 messages=[
                     {
                         "role": "system",
@@ -79,10 +89,10 @@ class ContentClassifier:
                     },
                     {"role": "user", "content": prompt}
                 ],
-                response_format={"type": "json_object"},
                 temperature=0.1
             )
             
+            # Формат ответа в старой версии API отличается
             content = response.choices[0].message.content
             if content:
                 result = json.loads(content)
@@ -96,45 +106,26 @@ class ContentClassifier:
             logger.error(f"Classification error: {e}")
             # Fallback to pattern-based classification
             fallback_category = self.classify_by_patterns(content)
+            subcategory = self.get_subcategory_for_pattern(content, fallback_category)
+            
+            # Special handling for timeout errors
+            error_message = str(e)
+            if 'timeout' in error_message.lower() or isinstance(e, asyncio.TimeoutError):
+                error_message = 'Request timeout'
+            
             return {
                 'category': fallback_category,
                 'confidence': 0.8,
                 'description': f'Улучшенная классификация по паттернам: {fallback_category}',
-                'subcategory': None
+                'subcategory': subcategory,
+                'error': error_message
             }
     
     def _create_classification_prompt(self, content: str) -> str:
         """Create classification prompt for OpenAI."""
         categories_text = "\n".join([f"- {cat}: {desc}" for cat, desc in self.categories.items()])
         
-        prompt = f"""
-Analyze the following developer resource content and classify it into one of these categories:
-
-{categories_text}
-
-Content to analyze:
-{content}
-
-Provide your response in JSON format with these fields:
-- "category": the most appropriate category from the list above
-- "subcategory": a more specific subcategory if applicable (optional)
-- "confidence": confidence score from 0.0 to 1.0
-- "description": brief description of the content (max 100 chars)
-- "programming_languages": list of detected programming languages (if any)
-- "topics": list of main topics/keywords (max 5)
-
-Example response:
-{{
-    "category": "code_examples",
-    "subcategory": "python_scripts",
-    "confidence": 0.95,
-    "description": "Python script for data processing",
-    "programming_languages": ["python"],
-    "topics": ["data processing", "pandas", "automation"]
-}}
-
-Respond with JSON only, no additional text.
-        """
+        prompt = f"""\nAnalyze the following developer resource content and classify it into one of these categories:\n\n{categories_text}\n\nContent to analyze:\n{content}\n\nProvide your response in JSON format with these fields:\n- "category": the most appropriate category from the list above\n- "subcategory": a more specific subcategory if applicable (optional)\n- "confidence": confidence score from 0.0 to 1.0\n- "description": brief description of the content (max 100 chars)\n- "programming_languages": list of detected programming languages (if any)\n- "topics": list of main topics/keywords (max 5)\n\nExample response:\n{{\n    "category": "code_examples",\n    "subcategory": "python_scripts",\n    "confidence": 0.95,\n    "description": "Python script for data processing",\n    "programming_languages": ["python"],\n    "topics": ["data processing", "pandas", "automation"]\n}}\n\nRespond with JSON only, no additional text.\n        """
         return prompt
     
     def _validate_classification(self, result: dict) -> dict:
@@ -148,11 +139,16 @@ Respond with JSON only, no additional text.
             category = 'other'
         
         # Clean and validate fields
+        confidence = max(0.0, min(1.0, float(result.get('confidence', 0.0))))
         cleaned_result = {
             'category': category,
-            'confidence': max(0.0, min(1.0, float(result.get('confidence', 0.0)))),
+            'confidence': confidence,
             'description': str(result.get('description', ''))[:100],
         }
+        
+        # Add low confidence flag if confidence is below threshold
+        if confidence < 0.5:
+            cleaned_result['low_confidence'] = True
         
         # Optional fields
         if result.get('subcategory'):
@@ -204,25 +200,20 @@ Respond with JSON only, no additional text.
         if any(keyword in content_lower for keyword in code_repo_keywords):
             return 'code_examples'
         
-        # Check for programming languages
-        if any(lang in content_lower for lang in programming_languages):
-            # If mentioned with tutorial keywords, classify as tutorial
-            tutorial_keywords = ['tutorial', 'how to', 'step by step', 'guide', 'learn', 'course', 'урок', 'обучение']
-            if any(keyword in content_lower for keyword in tutorial_keywords):
-                return 'tutorials'
-            else:
-                return 'code_examples'
-        
-        # Video patterns (enhanced)
+        # Video patterns (enhanced) - check first
         video_keywords = ['youtube.com', 'vimeo.com', 'youtu.be', 'video', 'watch', 'видео', 'смотреть']
         video_domains = ['youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv']
         if any(keyword in content_lower for keyword in video_keywords) or any(domain in content_lower for domain in video_domains):
             return 'videos'
         
-        # Tutorial patterns (enhanced)
-        tutorial_keywords = ['tutorial', 'how to', 'step by step', 'guide', 'learn', 'course', 'урок', 'обучение', 'пошагово', 'руководство']
+        # Tutorial patterns (enhanced) - check before programming languages
+        tutorial_keywords = ['tutorial', 'туториале', 'how to', 'step by step', 'guide', 'learn', 'course', 'урок', 'обучение', 'пошагово', 'руководство']
         if any(keyword in content_lower for keyword in tutorial_keywords):
             return 'tutorials'
+        
+        # Check for programming languages - only if not already classified as tutorial
+        if any(lang in content_lower for lang in programming_languages):
+            return 'code_examples'
         
         # Documentation patterns (enhanced)
         doc_keywords = ['documentation', 'docs', 'api reference', 'manual', 'readme', 'документация', 'справочник']
@@ -256,3 +247,66 @@ Respond with JSON only, no additional text.
             return 'articles'
         
         return 'other'
+    
+    def get_subcategory_for_pattern(self, content: str, category: str) -> str:
+        """Determine subcategory based on content patterns."""
+        content_lower = content.lower()
+        
+        if category == 'code_examples':
+            # Python patterns
+            if any(pattern in content_lower for pattern in ['def ', 'import ', 'python', '.py']):
+                return 'python_scripts'
+            # JavaScript patterns
+            elif any(pattern in content_lower for pattern in ['function ', 'javascript', 'js', 'const ', 'var ', 'let ']):
+                return 'javascript_snippets'
+            # SQL patterns
+            elif any(pattern in content_lower for pattern in ['select ', 'from ', 'where ', 'join ', 'sql']):
+                return 'database_queries'
+            # HTML/CSS patterns
+            elif any(pattern in content_lower for pattern in ['<html', '<div', '<p>', 'css', 'html']):
+                return 'web_markup'
+            else:
+                return 'general_code'
+                
+        elif category == 'tutorials':
+            # Web development tutorials
+            if any(pattern in content_lower for pattern in ['веб', 'web', 'сайт', 'website', 'html', 'css']):
+                return 'web_development'
+            # Git/Version control tutorials
+            elif any(pattern in content_lower for pattern in ['git', 'github', 'версий', 'version control']):
+                return 'version_control'
+            # Python tutorials
+            elif any(pattern in content_lower for pattern in ['python', 'pandas', 'numpy']):
+                return 'python_tutorial'
+            else:
+                return 'general_tutorial'
+                
+        elif category == 'documentation':
+            # API documentation
+            if any(pattern in content_lower for pattern in ['api', 'endpoint', 'get /', 'post /']):
+                return 'api_reference'
+            # Library documentation
+            elif any(pattern in content_lower for pattern in ['библиотек', 'library', 'pandas', 'numpy']):
+                return 'library_docs'
+            else:
+                return 'general_docs'
+                
+        elif category == 'videos':
+            return 'video_content'
+            
+        elif category == 'mockups':
+            return 'ui_design'
+            
+        elif category == 'tools':
+            return 'development_tools'
+            
+        elif category == 'libraries':
+            return 'code_libraries'
+            
+        elif category == 'frameworks':
+            return 'dev_frameworks'
+            
+        elif category == 'articles':
+            return 'tech_articles'
+            
+        return 'general'
