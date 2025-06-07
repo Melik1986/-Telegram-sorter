@@ -10,12 +10,20 @@ import sys
 import logging
 from pathlib import Path
 
+# Загружаем переменные окружения из .env файла
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    # dotenv not installed, continue with system environment variables
+    pass
+
 # Добавляем текущую директорию в путь
 sys.path.insert(0, str(Path(__file__).parent))
 
 try:
-    from config import get_telegram_token, get_openai_api_key, validate_api_keys, get_security_report
-    from bot import TelegramBot
+    from src.core.config import get_telegram_token, validate_api_keys, get_security_report
+    from src.core.bot import TelegramBot
 except ImportError as e:
     print(f"❌ Ошибка импорта: {e}")
     print("Убедитесь, что все зависимости установлены: pip install -r requirements.txt")
@@ -48,13 +56,13 @@ def check_environment():
     
     print("✅ Telegram токен найден")
     
-    # Проверка OpenAI ключа (опционально)
-    openai_key = get_openai_api_key()
-    if openai_key:
-        print("✅ OpenAI API ключ найден (улучшенная классификация включена)")
+    # Проверка Ollama (опционально)
+    from config import is_ollama_available
+    if is_ollama_available():
+        print("✅ Ollama доступен (улучшенная классификация включена)")
     else:
-        print("⚠️  OpenAI API ключ не найден (будет использоваться базовая классификация)")
-        print("   Для улучшенной классификации добавьте: OPENAI_API_KEY=your_key_here")
+        print("⚠️  Ollama недоступен (будет использоваться базовая классификация)")
+        print("   Для улучшенной классификации установите и запустите Ollama")
     
     # Проверка безопасности
     try:
@@ -103,7 +111,8 @@ def main():
     
     try:
         # Создание и запуск бота
-        bot = TelegramBot()
+        telegram_token = get_telegram_token()
+        bot = TelegramBot(telegram_token)
         print("✅ Бот успешно инициализирован")
         print("📱 Бот готов к работе! Найдите его в Telegram и отправьте /start")
         print("🌐 Веб-интерфейс: запустите web_interface.py для управления через браузер")

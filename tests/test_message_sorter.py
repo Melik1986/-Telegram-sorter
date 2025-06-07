@@ -7,8 +7,8 @@ from unittest.mock import patch, MagicMock
 # Добавляем родительскую директорию в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from message_sorter import MessageSorter
-from classifier import ContentClassifier
+from src.handlers.message_sorter import MessageSorter
+from src.core.classifier import ContentClassifier
 
 class TestMessageSorter(unittest.TestCase):
     

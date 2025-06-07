@@ -16,9 +16,9 @@ from datetime import datetime
 # Добавляем родительскую директорию в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from classifier import ContentClassifier
-from message_sorter import MessageSorter
-from bot import TelegramBot
+from src.core.classifier import ContentClassifier
+from src.handlers.message_sorter import MessageSorter
+from src.core.bot import TelegramBot
 
 class TestTelegramBotNeuralClassification(unittest.TestCase):
     """Тесты для телеграм бота с нейронной классификацией."""

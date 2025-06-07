@@ -8,14 +8,13 @@ import os
 import json
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
-from storage import ResourceStorage
-from cache import get_cache_manager
-from backup import get_backup_manager
-from rate_limiter import get_rate_limiter, get_command_rate_limiter
-from file_handler import get_file_handler
-from config import validate_api_keys, get_security_report
-from classifier import ContentClassifier
-from config import get_openai_key
+from src.utils.storage import ResourceStorage
+from src.utils.cache import get_cache_manager
+from scripts.backup import get_backup_manager
+from src.utils.rate_limiter import get_rate_limiter, get_command_rate_limiter
+from src.handlers.file_handler import get_file_handler
+from src.core.config import validate_api_keys, get_security_report
+from src.core.classifier import ContentClassifier
 
 app = Flask(__name__)
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -27,7 +26,7 @@ backup = get_backup_manager()
 rate_limiter = get_rate_limiter()
 command_rate_limiter = get_command_rate_limiter()
 file_handler = get_file_handler()
-classifier = ContentClassifier(get_openai_key())
+classifier = ContentClassifier()
 
 @app.route('/')
 def dashboard():
@@ -187,6 +186,8 @@ def add_resource():
         resource_id = storage.add_resource(
             content=content,
             category=category,
+            user_id=0,  # Web interface user
+            username='web_user',
             description=description,
             source='web_interface'
         )

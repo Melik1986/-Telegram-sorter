@@ -14,8 +14,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 try:
-    from web_interface import app
-    from config import get_security_report
+    from src.interfaces.web_interface import app
+    from src.core.config import get_security_report
 except ImportError as e:
     print(f"❌ Ошибка импорта: {e}")
     print("Убедитесь, что все зависимости установлены: pip install -r requirements.txt")

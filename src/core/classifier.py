@@ -7,22 +7,20 @@ import json
 import logging
 import os
 import re
-# Изменяем импорт для совместимости со старой версией OpenAI API
-import openai
-from utils import analyze_url_content
-from config import get_openai_key
+import requests
+from src.utils.utils import analyze_url_content
+from src.core.config import get_ollama_config, is_ollama_available
 
 logger = logging.getLogger(__name__)
 
 class ContentClassifier:
-    def __init__(self, openai_api_key: str = None):
+    def __init__(self):
         """Initialize the classifier."""
-        self.openai_api_key = openai_api_key
-        if openai_api_key:
-            self.client = OpenAI(api_key=openai_api_key)
-        else:
-            self.client = None
-            logger.warning("OpenAI API key not provided. Using fallback classification.")
+        self.ollama_config = get_ollama_config()
+        self.ollama_available = is_ollama_available()
+        
+        if not self.ollama_available:
+            logger.warning("Ollama not available. Using fallback classification.")
         
         # Define content categories with improved keywords
         self.categories = {
@@ -42,12 +40,11 @@ class ContentClassifier:
         }
     
     async def classify_content(self, content: str, urls: list = None) -> dict:
-        """Classify content using OpenAI API."""
+        """Classify content using Ollama API."""
         try:
-            # Check if API key is valid OpenAI format
-            api_key = get_openai_key()
-            if not api_key:
-                logger.info("Using pattern-based classification (OpenAI key not configured)")
+            # Check if Ollama is available
+            if not self.ollama_available:
+                logger.info("Using pattern-based classification (Ollama not available)")
                 fallback_category = self.classify_by_patterns(content)
                 subcategory = self.get_subcategory_for_pattern(content, fallback_category)
                 return {
@@ -56,9 +53,6 @@ class ContentClassifier:
                     'description': f'Улучшенная классификация по паттернам: {fallback_category}',
                     'subcategory': subcategory
                 }
-                
-            # Update client with correct API key
-            openai.api_key = api_key
             
             # Prepare content for analysis
             analysis_content = content
@@ -77,27 +71,13 @@ class ContentClassifier:
             # Create classification prompt
             prompt = self._create_classification_prompt(analysis_content)
             
-            # Используем старый API для создания запроса к OpenAI
-            response = openai.ChatCompletion.create(
-                model="gpt-4",  # gpt-4o недоступен в старой версии API
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an expert content classifier for developer resources. "
-                        + "Analyze content and classify it into appropriate categories. "
-                        + "Respond with JSON only."
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.1
-            )
+            # Make request to Ollama API
+            response = await self._call_ollama_api(prompt)
             
-            # Формат ответа в старой версии API отличается
-            content = response.choices[0].message.content
-            if content:
-                result = json.loads(content)
+            if response:
+                result = json.loads(response)
             else:
-                raise ValueError("Empty response from OpenAI")
+                raise ValueError("Empty response from Ollama")
             
             # Validate and clean result
             return self._validate_classification(result)
@@ -121,8 +101,49 @@ class ContentClassifier:
                 'error': error_message
             }
     
+    async def _call_ollama_api(self, prompt: str) -> str:
+        """Make async request to Ollama API."""
+        try:
+            url = f"{self.ollama_config['base_url']}/api/generate"
+            
+            system_prompt = (
+                "You are an expert content classifier for developer resources. "
+                "Analyze content and classify it into appropriate categories. "
+                "Respond with JSON only, no additional text."
+            )
+            
+            full_prompt = f"{system_prompt}\n\n{prompt}"
+            
+            payload = {
+                "model": self.ollama_config['model'],
+                "prompt": full_prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.1,
+                    "top_p": 0.9
+                }
+            }
+            
+            # Use asyncio to make non-blocking request
+            loop = asyncio.get_event_loop()
+            response = await loop.run_in_executor(
+                None, 
+                lambda: requests.post(url, json=payload, timeout=30)
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result.get('response', '')
+            else:
+                logger.error(f"Ollama API error: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error calling Ollama API: {e}")
+            return None
+    
     def _create_classification_prompt(self, content: str) -> str:
-        """Create classification prompt for OpenAI."""
+        """Create classification prompt for Ollama."""
         categories_text = "\n".join([f"- {cat}: {desc}" for cat, desc in self.categories.items()])
         
         prompt = f"""\nAnalyze the following developer resource content and classify it into one of these categories:\n\n{categories_text}\n\nContent to analyze:\n{content}\n\nProvide your response in JSON format with these fields:\n- "category": the most appropriate category from the list above\n- "subcategory": a more specific subcategory if applicable (optional)\n- "confidence": confidence score from 0.0 to 1.0\n- "description": brief description of the content (max 100 chars)\n- "programming_languages": list of detected programming languages (if any)\n- "topics": list of main topics/keywords (max 5)\n\nExample response:\n{{\n    "category": "code_examples",\n    "subcategory": "python_scripts",\n    "confidence": 0.95,\n    "description": "Python script for data processing",\n    "programming_languages": ["python"],\n    "topics": ["data processing", "pandas", "automation"]\n}}\n\nRespond with JSON only, no additional text.\n        """

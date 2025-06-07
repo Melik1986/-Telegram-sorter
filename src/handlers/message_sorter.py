@@ -1,6 +1,6 @@
 """Module for sorting and classifying messages."""
 
-from classifier import ContentClassifier
+from src.core.classifier import ContentClassifier
 
 class MessageSorter:
     """Class for sorting and classifying messages."""

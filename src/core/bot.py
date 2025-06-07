@@ -8,24 +8,24 @@ import asyncio
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from classifier import ContentClassifier
-from storage import ResourceStorage
-from utils import extract_urls, format_resource_list
-from config import get_telegram_token, get_openai_key
-from cache import get_cache_manager
-from backup import get_backup_manager
-from rate_limiter import get_rate_limiter, get_command_rate_limiter
-from file_handler import get_file_handler
-from i18n import get_i18n_manager, t
-from config import get_security_report
+from src.core.classifier import ContentClassifier
+from src.utils.storage import ResourceStorage
+from src.utils.utils import extract_urls, format_resource_list
+from src.core.config import get_telegram_token
+from src.utils.cache import get_cache_manager
+from scripts.backup import get_backup_manager
+from src.utils.rate_limiter import get_rate_limiter, get_command_rate_limiter
+from src.handlers.file_handler import get_file_handler
+from src.utils.i18n import get_i18n_manager, t
+from src.core.config import get_security_report
 
 logger = logging.getLogger(__name__)
 
 class TelegramBot:
-    def __init__(self, bot_token, openai_api_key):
+    def __init__(self, bot_token):
         """Initialize the Telegram bot with AI classifier and storage."""
         self.bot_token = bot_token
-        self.classifier = ContentClassifier(openai_api_key)
+        self.classifier = ContentClassifier()
         self.storage = ResourceStorage()
         self.cache = get_cache_manager()
         self.backup = get_backup_manager()
@@ -40,6 +40,10 @@ class TelegramBot:
         self.backup.start_automatic_backup(self._get_storage_data)
         
         logger.info("Telegram bot initialized with all systems")
+    
+    def _get_storage_data(self):
+        """Get current storage data for backup."""
+        return self.storage.get_all_resources()
     
     def _setup_handlers(self):
         """Set up command and message handlers."""
@@ -59,8 +63,8 @@ class TelegramBot:
         self.app.add_handler(CommandHandler("export", self.export_command))
         self.app.add_handler(CommandHandler("import", self.import_command))
         self.app.add_handler(CommandHandler("clear", self.clear_command))
-        self.app.add_handler(CommandHandler("security", self.security_command))
-        self.app.add_handler(CommandHandler("language", self.language_command))
+        # self.app.add_handler(CommandHandler("security", self.security_command))
+        # self.app.add_handler(CommandHandler("language", self.language_command))
         
         # File handlers
         self.app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
@@ -312,6 +316,8 @@ class TelegramBot:
             resource_id = self.storage.add_resource(
                 content=content,
                 category=classification['category'],
+                user_id=update.effective_user.id,
+                username=update.effective_user.username,
                 subcategory=classification.get('subcategory'),
                 confidence=classification.get('confidence', 0.0),
                 description=classification.get('description', ''),
@@ -652,6 +658,14 @@ class TelegramBot:
     
     def run(self):
         """Start the bot."""
+        import asyncio
         logger.info("Starting DevDataSorter bot...")
+        try:
+            # Create event loop if it doesn't exist
+            loop = asyncio.get_event_loop()
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+        
         self.app.run_polling(drop_pending_updates=True)
         logger.info("Bot stopped")

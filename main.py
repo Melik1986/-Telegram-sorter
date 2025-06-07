@@ -5,7 +5,7 @@ Main entry point for the Telegram bot with AI-powered classification system.
 
 import logging
 import os
-from bot import TelegramBot
+from src.core.bot import TelegramBot
 
 # Load environment variables from .env file
 try:
@@ -30,16 +30,8 @@ def main():
         logger.error("TELEGRAM_BOT_TOKEN environment variable is required")
         return
     
-    # Get OpenAI API key
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    if not openai_api_key:
-        logger.error("OPENAI_API_KEY environment variable is required")
-        return
-    
-    logger.info("Starting Telegram bot...")
-    
-    # Initialize and start the bot
-    bot = TelegramBot(bot_token, openai_api_key)
+    # Initialize and run bot
+    bot = TelegramBot(bot_token)
     bot.run()
 
 if __name__ == "__main__":
