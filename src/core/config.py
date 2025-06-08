@@ -106,6 +106,10 @@ def validate_config():
         'issues': issues
     }
 
+def validate_api_keys():
+    """Validate API keys and return status (legacy function for compatibility)."""
+    return validate_config()
+
 def get_security_report():
     """Get detailed configuration report for AI setup."""
     validation = validate_config()

@@ -23,7 +23,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 try:
     from src.core.config import get_telegram_token, validate_api_keys, get_security_report
-    from src.core.bot import TelegramBot
+    from src.core.bot import DevDataSorterBot
 except ImportError as e:
     print(f"❌ Ошибка импорта: {e}")
     print("Убедитесь, что все зависимости установлены: pip install -r requirements.txt")
@@ -57,7 +57,7 @@ def check_environment():
     print("✅ Telegram токен найден")
     
     # Проверка Ollama (опционально)
-    from config import is_ollama_available
+    from src.core.config import is_ollama_available
     if is_ollama_available():
         print("✅ Ollama доступен (улучшенная классификация включена)")
     else:
@@ -112,7 +112,7 @@ def main():
     try:
         # Создание и запуск бота
         telegram_token = get_telegram_token()
-        bot = TelegramBot(telegram_token)
+        bot = DevDataSorterBot(telegram_token)
         print("✅ Бот успешно инициализирован")
         print("📱 Бот готов к работе! Найдите его в Telegram и отправьте /start")
         print("🌐 Веб-интерфейс: запустите web_interface.py для управления через браузер")

@@ -1,0 +1,92 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Resources</h5>
+                <h2 class="text-primary">{{ storage_stats.total_resources }}</h2>
+                <p class="text-muted">Total stored</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Categories</h5>
+                <h2 class="text-success">{{ storage_stats.total_categories }}</h2>
+                <p class="text-muted">Active categories</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Cache</h5>
+                <h2 class="text-info">{{ cache_stats.total_items }}</h2>
+                <p class="text-muted">Cached items</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card">
+            <div class="card-body text-center">
+                <h5 class="card-title">Files</h5>
+                <h2 class="text-warning">{{ file_stats.total_processed }}</h2>
+                <p class="text-muted">Files processed</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Resources</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_resources %}
+                    <div class="list-group">
+                        {% for resource in recent_resources %}
+                            <div class="list-group-item">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ resource.content[:100] }}...</h6>
+                                    <small class="text-muted">{{ resource.category }}</small>
+                                </div>
+                                {% if resource.description %}
+                                    <p class="mb-1">{{ resource.description[:150] }}...</p>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No resources found</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5>Categories</h5>
+            </div>
+            <div class="card-body">
+                {% if categories %}
+                    {% for category, count in categories.items() %}
+                        <div class="d-flex justify-content-between">
+                            <span>{{ category }}</span>
+                            <span class="badge bg-primary">{{ count }}</span>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No categories found</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+    

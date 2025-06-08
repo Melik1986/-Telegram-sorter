@@ -5,8 +5,14 @@ Provides a simple web dashboard for monitoring and managing the bot.
 """
 
 import os
+import sys
 import json
 from datetime import datetime
+from pathlib import Path
+
+# Add project root to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent))
+
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from src.utils.storage import ResourceStorage
 from src.utils.cache import get_cache_manager
