@@ -5,7 +5,7 @@ Main entry point for the Telegram bot with AI-powered classification system.
 
 import logging
 import os
-from src.core.bot import TelegramBot
+from src.core.bot import DevDataSorterBot
 
 # Load environment variables from .env file
 try:
@@ -31,7 +31,7 @@ def main():
         return
     
     # Initialize and run bot
-    bot = TelegramBot(bot_token)
+    bot = DevDataSorterBot(bot_token)
     bot.run()
 
 if __name__ == "__main__":
