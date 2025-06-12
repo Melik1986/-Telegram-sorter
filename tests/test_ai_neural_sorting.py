@@ -57,19 +57,19 @@ class TestAINeuralSorting(unittest.TestCase):
                 
                 self.assertEqual(actual_quality, case["expected_quality"])
     
-    @patch('classifier.get_openai_key')
-    @patch('classifier.openai.ChatCompletion.create')
-    def test_ai_classification_accuracy(self, mock_create, mock_get_key):
+    @patch('src.core.classifier.get_ai_config')
+    def test_ai_classification_accuracy(self, mock_get_config):
         """Тест точности AI-классификации для различных типов контента."""
-        mock_get_key.return_value = "test_api_key"
+        mock_get_config.return_value = {'provider': 'groq', 'api_key': 'test_api_key'}
+        
+        # Создаем новый классификатор с мокнутой конфигурацией
+        classifier = ContentClassifier()
         
         # Тестируем каждый тип контента из тестовых данных
         for i, test_item in enumerate(self.test_data[:5]):  # Ограничиваем для скорости
             with self.subTest(test_case=i, category=test_item['expected_category']):
-                # Настраиваем мок-ответ
-                mock_response = MagicMock()
-                mock_response.choices = [MagicMock()]
-                mock_response.choices[0].message.content = json.dumps({
+                # Мокаем API вызов для возврата ожидаемого результата
+                expected_response = json.dumps({
                     "category": test_item['expected_category'],
                     "subcategory": test_item.get('expected_subcategory', 'general'),
                     "confidence": 0.9,
@@ -77,14 +77,16 @@ class TestAINeuralSorting(unittest.TestCase):
                     "programming_languages": test_item.get('programming_languages', []),
                     "topics": ["test", "classification"]
                 })
-                mock_create.return_value = mock_response
                 
-                # Выполняем классификацию
-                result = asyncio.run(self.classifier.classify_content(test_item['content']))
-                
-                # Проверяем результат
-                self.assertEqual(result['category'], test_item['expected_category'])
-                self.assertGreaterEqual(result['confidence'], 0.8)
+                with patch('src.core.classifier.ContentClassifier._call_groq_api') as mock_groq:
+                    mock_groq.return_value = expected_response
+                    
+                    # Выполняем классификацию
+                    result = asyncio.run(classifier.classify_content(test_item['content']))
+                    
+                    # Проверяем результат
+                    self.assertEqual(result['category'], test_item['expected_category'])
+                    self.assertGreaterEqual(result['confidence'], 0.8)
     
     def test_pattern_based_fallback_neural_logic(self):
         """Тест логики fallback на основе паттернов (имитация простой нейронной сети)."""
@@ -140,10 +142,10 @@ class TestAINeuralSorting(unittest.TestCase):
                 self.assertGreaterEqual(result['confidence'], 0.0)
                 self.assertLessEqual(result['confidence'], 1.0)
     
-    @patch('classifier.get_openai_key')
-    def test_neural_network_error_handling(self, mock_get_key):
+    @patch('src.core.classifier.get_ai_config')
+    def test_neural_network_error_handling(self, mock_get_config):
         """Тест обработки ошибок нейронной сети."""
-        mock_get_key.return_value = "test_api_key"
+        mock_get_config.return_value = {'provider': 'groq', 'api_key': 'test_api_key'}
         
         error_scenarios = [
             {'error': ConnectionError("Network error"), 'expected_fallback': True},
@@ -154,11 +156,13 @@ class TestAINeuralSorting(unittest.TestCase):
         
         for scenario in error_scenarios:
             with self.subTest(error_type=type(scenario['error']).__name__):
-                with patch('classifier.openai.ChatCompletion.create') as mock_create:
-                    mock_create.side_effect = scenario['error']
+                # Создаем новый классификатор с мокнутой конфигурацией
+                classifier = ContentClassifier()
+                
+                with patch('src.core.classifier.ContentClassifier._call_groq_api') as mock_groq:
+                    mock_groq.side_effect = scenario['error']
                     
-                    # Тестируем обработку ошибки
-                    result = asyncio.run(self.classifier.classify_content("test content"))
+                    result = asyncio.run(classifier.classify_content("test content"))
                     
                     # Проверяем fallback
                     if scenario['expected_fallback']:
@@ -251,11 +255,11 @@ class TestAINeuralSorting(unittest.TestCase):
         for result in results:
             self.assertEqual(result, "code_examples")
     
-    @patch('classifier.get_openai_key')
-    def test_api_key_validation_neural_fallback(self, mock_get_key):
+    @patch('src.core.classifier.get_ai_config')
+    def test_api_key_validation_neural_fallback(self, mock_get_config):
         """Тест валидации API ключа и fallback на нейронную логику."""
         # Тест с отсутствующим API ключом
-        mock_get_key.return_value = None
+        mock_get_config.return_value = {'provider': 'fallback', 'api_key': None}
         
         result = asyncio.run(self.classifier.classify_content("def test(): pass"))
         
@@ -265,12 +269,15 @@ class TestAINeuralSorting(unittest.TestCase):
         self.assertIn('description', result)
         
         # Тест с недействительным API ключом
-        mock_get_key.return_value = "invalid_key"
+        mock_get_config.return_value = {'provider': 'groq', 'api_key': 'invalid_key'}
         
-        with patch('classifier.openai.ChatCompletion.create') as mock_create:
-            mock_create.side_effect = Exception("Invalid API key")
+        # Создаем новый классификатор с мокнутой конфигурацией
+        classifier = ContentClassifier()
+        
+        with patch('src.core.classifier.ContentClassifier._call_groq_api') as mock_groq:
+            mock_groq.side_effect = Exception("Invalid API key")
             
-            result = asyncio.run(self.classifier.classify_content("def test(): pass"))
+            result = asyncio.run(classifier.classify_content("def test(): pass"))
             
             # Проверяем fallback при ошибке API
             self.assertEqual(result['category'], 'code_examples')

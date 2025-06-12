@@ -2,11 +2,22 @@
 .env
 .env.local
 .env.production
+.env.development
 
 # API Keys and secrets
 *.key
 *.pem
 secrets/
+api_keys/
+
+# Docker
+docker-compose.yml
+Dockerfile
+docker/
+
+# tests
+test/
+tests/
 
 # Data files
 data/
@@ -30,6 +41,31 @@ backups/
 logs/
 *.log
 *.out
+
+# Debug files
+debug/
+*.debug
+
+# Reports and test outputs
+reports/
+htmlcov/
+.coverage
+coverage.xml
+*.cover
+
+# Cache directories
+cache/
+.cache/
+*.cache
+__pycache__/
+
+# Benchmarks
+.benchmarks/
+benchmarks/
+
+# Runtime files
+*.pid
+*.lock
 
 # Python
 __pycache__/
@@ -159,3 +195,20 @@ dmypy.json
 
 # Cython
 cython_debug/
+
+# Project specific
+.replit
+uv.lock
+*.disabled
+
+# Local development settings
+.local/
+local_settings.py
+
+# Test artifacts
+.pytest_cache/
+__snapshots__/
+
+# Temporary development files
+TODO.md
+NOTES.md

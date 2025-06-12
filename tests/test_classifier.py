@@ -13,17 +13,17 @@ from src.core.classifier import ContentClassifier
 class TestContentClassifier(unittest.TestCase):
     
     def setUp(self):
-        # Создаем экземпляр классификатора для тестов
-        self.classifier = ContentClassifier()
+        # Классификатор будет создаваться в каждом тесте после применения патчей
+        pass
     
-    @patch('classifier.get_openai_key')
-    @patch('classifier.openai.ChatCompletion.create')
-    def test_classify_content_code_example(self, mock_create, mock_get_key):
-        mock_get_key.return_value = "test_api_key"
-        # Подготавливаем мок-ответ от OpenAI API
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = json.dumps({
+    @patch('src.core.classifier.get_ai_config')
+    @patch('src.core.classifier.ContentClassifier._call_groq_api')
+    def test_classify_content_code_example(self, mock_groq_api, mock_get_config):
+        # Настраиваем мок конфигурации
+        mock_get_config.return_value = {'provider': 'groq', 'api_key': 'test_api_key', 'model': 'llama3-8b-8192'}
+        
+        # Подготавливаем мок-ответ от Groq API
+        mock_groq_api.return_value = json.dumps({
             "category": "code_examples",
             "subcategory": "python_scripts",
             "confidence": 0.95,
@@ -31,7 +31,9 @@ class TestContentClassifier(unittest.TestCase):
             "programming_languages": ["python"],
             "topics": ["data processing", "pandas", "automation"]
         })
-        mock_create.return_value = mock_response
+        
+        # Создаем классификатор после применения патчей
+        classifier = ContentClassifier()
         
         # Тестируем классификацию кода
         content = """def process_data(data):
@@ -40,7 +42,7 @@ class TestContentClassifier(unittest.TestCase):
     return df.describe()
 """
         # Используем asyncio для запуска асинхронного метода
-        result = asyncio.run(self.classifier.classify_content(content))
+        result = asyncio.run(classifier.classify_content(content))
         
         # Проверяем результат
         self.assertEqual(result['category'], 'code_examples')
@@ -49,14 +51,14 @@ class TestContentClassifier(unittest.TestCase):
         self.assertEqual(len(result['programming_languages']), 1)
         self.assertEqual(result['programming_languages'][0], 'python')
     
-    @patch('classifier.get_openai_key')
-    @patch('classifier.openai.ChatCompletion.create')
-    def test_classify_content_tutorial(self, mock_create, mock_get_key):
-        mock_get_key.return_value = "test_api_key"
-        # Подготавливаем мок-ответ от OpenAI API
-        mock_response = MagicMock()
-        mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = json.dumps({
+    @patch('src.core.classifier.get_ai_config')
+    @patch('src.core.classifier.ContentClassifier._call_groq_api')
+    def test_classify_content_tutorial(self, mock_groq_api, mock_get_config):
+        # Настраиваем мок конфигурации
+        mock_get_config.return_value = {'provider': 'groq', 'api_key': 'test_api_key', 'model': 'llama3-8b-8192'}
+        
+        # Подготавливаем мок-ответ от Groq API
+        mock_groq_api.return_value = json.dumps({
             "category": "tutorials",
             "subcategory": "python_tutorial",
             "confidence": 0.9,
@@ -64,7 +66,9 @@ class TestContentClassifier(unittest.TestCase):
             "programming_languages": ["python"],
             "topics": ["pandas", "data analysis", "tutorial"]
         })
-        mock_create.return_value = mock_response
+        
+        # Создаем классификатор после применения патчей
+        classifier = ContentClassifier()
         
         # Тестируем классификацию туториала
         content = """# How to Use Pandas for Data Analysis
@@ -77,7 +81,7 @@ pip install pandas
 ```
 """
         # Используем asyncio для запуска асинхронного метода
-        result = asyncio.run(self.classifier.classify_content(content))
+        result = asyncio.run(classifier.classify_content(content))
         
         # Проверяем результат
         self.assertEqual(result['category'], 'tutorials')
@@ -86,28 +90,32 @@ pip install pandas
     
     def test_classify_by_patterns_code(self):
         # Тестируем классификацию по паттернам для кода
-        content = "def hello_world(): print('Hello, World!')"
-        result = self.classifier.classify_by_patterns(content)
+        classifier = ContentClassifier()
+        content = """def hello_world():
+    print("Hello, World!")
+"""
+        result = classifier.classify_by_patterns(content)
         self.assertEqual(result, 'code_examples')
-    
+        
     def test_classify_by_patterns_video(self):
         # Тестируем классификацию по паттернам для видео
-        content = "Check out this tutorial video on YouTube: https://youtube.com/watch?v=12345"
-        result = self.classifier.classify_by_patterns(content)
+        classifier = ContentClassifier()
+        content = "Check out this amazing tutorial: https://youtube.com/watch?v=abc123"
+        result = classifier.classify_by_patterns(content)
         self.assertEqual(result, 'videos')
-    
+        
     def test_classify_by_patterns_tutorial(self):
         # Тестируем классификацию по паттернам для туториала
-        # Используем текст, который не содержит упоминаний языков программирования
-        content = "Step by step guide: How to learn programming concepts"
-        result = self.classifier.classify_by_patterns(content)
+        classifier = ContentClassifier()
+        content = "# Tutorial: How to learn Python\n\nStep 1: Install Python"
+        result = classifier.classify_by_patterns(content)
         self.assertEqual(result, 'tutorials')
-    
+        
     def test_classify_by_patterns_documentation(self):
         # Тестируем классификацию по паттернам для документации
-        # Используем текст, который не содержит упоминаний языков программирования
-        content = "Official Documentation: The complete API reference documentation"
-        result = self.classifier.classify_by_patterns(content)
+        classifier = ContentClassifier()
+        content = "## API Reference\n\nThis function returns the user data"
+        result = classifier.classify_by_patterns(content)
         self.assertEqual(result, 'documentation')
 
 if __name__ == '__main__':

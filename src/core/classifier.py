@@ -31,10 +31,16 @@ class ContentClassifier:
         # Define content categories with improved keywords
         self.categories = {
             'documentation': ['docs', 'documentation', 'guide', 'tutorial', 'readme', 'manual', 'wiki', 'help', 'instructions'],
-            'code': ['code', 'programming', 'script', 'function', 'class', 'algorithm', 'source', 'implementation', 'snippet'],
+            'code_examples': ['code', 'programming', 'script', 'function', 'class', 'algorithm', 'source', 'implementation', 'snippet'],
+            'tutorials': ['tutorial', 'guide', 'how-to', 'walkthrough', 'step-by-step', 'lesson', 'course'],
+            'videos': ['video', 'youtube', 'vimeo', 'watch', 'stream', 'recording'],
+            'mockups': ['mockup', 'wireframe', 'prototype', 'design', 'figma', 'sketch'],
+            'libraries': ['library', 'package', 'npm', 'pip', 'composer', 'dependency'],
+            'frameworks': ['framework', 'boilerplate', 'template', 'scaffold'],
+            'tools': ['tool', 'utility', 'software', 'application', 'plugin', 'extension'],
+            'articles': ['article', 'blog', 'post', 'news', 'story'],
             'api': ['api', 'endpoint', 'rest', 'graphql', 'webhook', 'service', 'microservice', 'integration'],
             'database': ['database', 'sql', 'query', 'schema', 'table', 'migration', 'mongodb', 'postgresql', 'mysql'],
-            'tools': ['tool', 'utility', 'software', 'application', 'plugin', 'extension', 'framework', 'library'],
             'learning': ['course', 'tutorial', 'lesson', 'education', 'training', 'workshop', 'webinar', 'certification'],
             'reference': ['reference', 'cheatsheet', 'quick', 'summary', 'overview', 'specification', 'standard'],
             'design': ['design', 'ui', 'ux', 'mockup', 'wireframe', 'prototype', 'figma', 'sketch'],
@@ -149,7 +155,7 @@ class ContentClassifier:
                 
         except Exception as e:
             logger.error(f"Error calling Groq API: {e}")
-            return None
+            raise e
     
     async def _call_ollama_api(self, prompt: str) -> str:
         """Make async request to Ollama API."""
@@ -190,7 +196,7 @@ class ContentClassifier:
                 
         except Exception as e:
             logger.error(f"Error calling Ollama API: {e}")
-            return None
+            raise e
     
     def _create_classification_prompt(self, content: str) -> str:
         """Create classification prompt for Ollama."""

@@ -24,7 +24,7 @@ class TestIntegration(unittest.TestCase):
         # Создаем экземпляр сортировщика сообщений
         self.sorter = MessageSorter(classifier=self.classifier)
     
-    @patch('classifier.openai.ChatCompletion.create')
+    @patch('openai.ChatCompletion.create')
     def test_end_to_end_code_examples(self, mock_openai_create):
         # Настраиваем мок для OpenAI API
         mock_response = MagicMock()
@@ -60,7 +60,7 @@ class TestIntegration(unittest.TestCase):
         # programming_languages не возвращается в fallback методе
         # self.assertEqual(result['programming_languages'], ['python'])
     
-    @patch('classifier.openai.ChatCompletion.create')
+    @patch('openai.ChatCompletion.create')
     def test_end_to_end_tutorials(self, mock_openai_create):
         # Настраиваем мок для OpenAI API
         mock_response = MagicMock()
