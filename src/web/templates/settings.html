@@ -1,1224 +1,1642 @@
-{% extends "base.html" %}
-
-{% block title %}Настройки - DevDataSorter{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %}Настройки - DevDataSorter{% endblock
+%} {% block content %}
 <!-- Page Header -->
 <div class="row mb-4">
-    <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="mb-1">
-                    <i class="fas fa-cog me-2 text-primary"></i>
-                    Настройки системы
-                </h2>
-                <p class="text-muted mb-0">Управление конфигурацией DevDataSorter</p>
-            </div>
-            <div>
-                <button class="btn btn-success" onclick="saveAllSettings()">
-                    <i class="fas fa-save me-2"></i>
-                    Сохранить все
-                </button>
-            </div>
-        </div>
+  <div class="col-12">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h2 class="mb-1">
+          <i class="fas fa-cog me-2 text-primary"></i>
+          Настройки системы
+        </h2>
+        <p class="text-muted mb-0">Управление конфигурацией DevDataSorter</p>
+      </div>
+      <div>
+        <button class="btn btn-success" onclick="saveAllSettings()">
+          <i class="fas fa-save me-2"></i>
+          Сохранить все
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Settings Tabs -->
 <div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <ul class="nav nav-tabs card-header-tabs" id="settingsTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active" id="general-tab" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">
-                            <i class="fas fa-sliders-h me-2"></i>
-                            Общие
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="search-tab" data-bs-toggle="tab" data-bs-target="#search" type="button" role="tab">
-                            <i class="fas fa-search me-2"></i>
-                            Поиск
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="indexing-tab" data-bs-toggle="tab" data-bs-target="#indexing" type="button" role="tab">
-                            <i class="fas fa-database me-2"></i>
-                            Индексация
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api" type="button" role="tab">
-                            <i class="fas fa-key me-2"></i>
-                            API
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="interface-tab" data-bs-toggle="tab" data-bs-target="#interface" type="button" role="tab">
-                            <i class="fas fa-palette me-2"></i>
-                            Интерфейс
-                        </button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link" id="github-tab" data-bs-toggle="tab" data-bs-target="#github" type="button" role="tab">
-                            <i class="fab fa-github me-2"></i>
-                            GitHub
-                        </button>
-                    </li>
-                </ul>
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <ul
+          class="nav nav-tabs card-header-tabs"
+          id="settingsTabs"
+          role="tablist"
+        >
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="general-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#general"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-sliders-h me-2"></i>
+              Общие
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="search-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#search"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-search me-2"></i>
+              Поиск
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="indexing-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#indexing"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-database me-2"></i>
+              Индексация
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="api-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#api"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-key me-2"></i>
+              API
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="interface-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#interface"
+              type="button"
+              role="tab"
+            >
+              <i class="fas fa-palette me-2"></i>
+              Интерфейс
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="github-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#github"
+              type="button"
+              role="tab"
+            >
+              <i class="fab fa-github me-2"></i>
+              GitHub
+            </button>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <div class="tab-content" id="settingsTabContent">
+          <!-- General Settings -->
+          <div class="tab-pane fade show active" id="general" role="tabpanel">
+            <h5 class="mb-3">Основные настройки</h5>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="defaultPath" class="form-label"
+                    >Путь по умолчанию для сканирования</label
+                  >
+                  <div class="input-group">
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="defaultPath"
+                      placeholder="/path/to/projects"
+                    />
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      onclick="selectFolder()"
+                    >
+                      <i class="fas fa-folder-open"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="language" class="form-label"
+                    >Язык интерфейса</label
+                  >
+                  <select class="form-select" id="language">
+                    <option value="ru" selected>Русский</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="maxFileSize" class="form-label"
+                    >Максимальный размер файла (MB)</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="maxFileSize"
+                    value="100"
+                    min="1"
+                    max="1000"
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Автоматические функции</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="autoScan"
+                      checked
+                    />
+                    <label class="form-check-label" for="autoScan">
+                      Автоматическое сканирование при запуске
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="autoBackup"
+                      checked
+                    />
+                    <label class="form-check-label" for="autoBackup">
+                      Автоматическое резервное копирование
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="autoUpdate"
+                    />
+                    <label class="form-check-label" for="autoUpdate">
+                      Автоматические обновления
+                    </label>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="logLevel" class="form-label"
+                    >Уровень логирования</label
+                  >
+                  <select class="form-select" id="logLevel">
+                    <option value="DEBUG">Debug</option>
+                    <option value="INFO" selected>Info</option>
+                    <option value="WARNING">Warning</option>
+                    <option value="ERROR">Error</option>
+                  </select>
+                </div>
+              </div>
             </div>
-            <div class="card-body">
-                <div class="tab-content" id="settingsTabContent">
-                    <!-- General Settings -->
-                    <div class="tab-pane fade show active" id="general" role="tabpanel">
-                        <h5 class="mb-3">Основные настройки</h5>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="defaultPath" class="form-label">Путь по умолчанию для сканирования</label>
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="defaultPath" placeholder="/path/to/projects">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="selectFolder()">
-                                            <i class="fas fa-folder-open"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="language" class="form-label">Язык интерфейса</label>
-                                    <select class="form-select" id="language">
-                                        <option value="ru" selected>Русский</option>
-                                        <option value="en">English</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="maxFileSize" class="form-label">Максимальный размер файла (MB)</label>
-                                    <input type="number" class="form-control" id="maxFileSize" value="100" min="1" max="1000">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Автоматические функции</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="autoScan" checked>
-                                        <label class="form-check-label" for="autoScan">
-                                            Автоматическое сканирование при запуске
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="autoBackup" checked>
-                                        <label class="form-check-label" for="autoBackup">
-                                            Автоматическое резервное копирование
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="autoUpdate">
-                                        <label class="form-check-label" for="autoUpdate">
-                                            Автоматические обновления
-                                        </label>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="logLevel" class="form-label">Уровень логирования</label>
-                                    <select class="form-select" id="logLevel">
-                                        <option value="DEBUG">Debug</option>
-                                        <option value="INFO" selected>Info</option>
-                                        <option value="WARNING">Warning</option>
-                                        <option value="ERROR">Error</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
+          </div>
+
+          <!-- Search Settings -->
+          <div class="tab-pane fade" id="search" role="tabpanel">
+            <h5 class="mb-3">Настройки поиска</h5>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="searchEngine" class="form-label"
+                    >Поисковый движок</label
+                  >
+                  <select class="form-select" id="searchEngine">
+                    <option value="semantic" selected>
+                      Семантический поиск
+                    </option>
+                    <option value="fulltext">Полнотекстовый поиск</option>
+                    <option value="hybrid">Гибридный поиск</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="maxResults" class="form-label"
+                    >Максимум результатов</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="maxResults"
+                    value="50"
+                    min="10"
+                    max="500"
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="similarityThreshold" class="form-label"
+                    >Порог схожести (%)</label
+                  >
+                  <input
+                    type="range"
+                    class="form-range"
+                    id="similarityThreshold"
+                    min="0"
+                    max="100"
+                    value="70"
+                  />
+                  <div class="d-flex justify-content-between">
+                    <small>0%</small>
+                    <small id="similarityValue">70%</small>
+                    <small>100%</small>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Типы файлов для индексации</label>
+                  <div class="row">
+                    <div class="col-6">
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="indexCode"
+                          checked
+                        />
+                        <label class="form-check-label" for="indexCode"
+                          >Код</label
+                        >
+                      </div>
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="indexDocs"
+                          checked
+                        />
+                        <label class="form-check-label" for="indexDocs"
+                          >Документы</label
+                        >
+                      </div>
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="indexConfigs"
+                          checked
+                        />
+                        <label class="form-check-label" for="indexConfigs"
+                          >Конфиги</label
+                        >
+                      </div>
                     </div>
-                    
-                    <!-- Search Settings -->
-                    <div class="tab-pane fade" id="search" role="tabpanel">
-                        <h5 class="mb-3">Настройки поиска</h5>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="searchEngine" class="form-label">Поисковый движок</label>
-                                    <select class="form-select" id="searchEngine">
-                                        <option value="semantic" selected>Семантический поиск</option>
-                                        <option value="fulltext">Полнотекстовый поиск</option>
-                                        <option value="hybrid">Гибридный поиск</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="maxResults" class="form-label">Максимум результатов</label>
-                                    <input type="number" class="form-control" id="maxResults" value="50" min="10" max="500">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="similarityThreshold" class="form-label">Порог схожести (%)</label>
-                                    <input type="range" class="form-range" id="similarityThreshold" min="0" max="100" value="70">
-                                    <div class="d-flex justify-content-between">
-                                        <small>0%</small>
-                                        <small id="similarityValue">70%</small>
-                                        <small>100%</small>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Типы файлов для индексации</label>
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="indexCode" checked>
-                                                <label class="form-check-label" for="indexCode">Код</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="indexDocs" checked>
-                                                <label class="form-check-label" for="indexDocs">Документы</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="indexConfigs" checked>
-                                                <label class="form-check-label" for="indexConfigs">Конфиги</label>
-                                            </div>
-                                        </div>
-                                        <div class="col-6">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="indexImages">
-                                                <label class="form-check-label" for="indexImages">Изображения</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="indexArchives">
-                                                <label class="form-check-label" for="indexArchives">Архивы</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="indexOther">
-                                                <label class="form-check-label" for="indexOther">Прочие</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="excludePatterns" class="form-label">Исключить паттерны</label>
-                                    <textarea class="form-control" id="excludePatterns" rows="3" placeholder="node_modules\n.git\n*.tmp">node_modules
+                    <div class="col-6">
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="indexImages"
+                        />
+                        <label class="form-check-label" for="indexImages"
+                          >Изображения</label
+                        >
+                      </div>
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="indexArchives"
+                        />
+                        <label class="form-check-label" for="indexArchives"
+                          >Архивы</label
+                        >
+                      </div>
+                      <div class="form-check">
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="indexOther"
+                        />
+                        <label class="form-check-label" for="indexOther"
+                          >Прочие</label
+                        >
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="excludePatterns" class="form-label"
+                    >Исключить паттерны</label
+                  >
+                  <textarea
+                    class="form-control"
+                    id="excludePatterns"
+                    rows="3"
+                    placeholder="node_modules\n.git\n*.tmp"
+                  >
+node_modules
 .git
 __pycache__
 *.pyc
-.env</textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Indexing Settings -->
-                    <div class="tab-pane fade" id="indexing" role="tabpanel">
-                        <h5 class="mb-3">Настройки индексации</h5>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="indexingMode" class="form-label">Режим индексации</label>
-                                    <select class="form-select" id="indexingMode">
-                                        <option value="incremental" selected>Инкрементальная</option>
-                                        <option value="full">Полная</option>
-                                        <option value="smart">Умная</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="indexingInterval" class="form-label">Интервал автоиндексации (часы)</label>
-                                    <input type="number" class="form-control" id="indexingInterval" value="24" min="1" max="168">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="maxIndexSize" class="form-label">Максимальный размер индекса (GB)</label>
-                                    <input type="number" class="form-control" id="maxIndexSize" value="10" min="1" max="100">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label class="form-label">Параметры производительности</label>
-                                    <div class="mb-2">
-                                        <label for="threadsCount" class="form-label">Количество потоков</label>
-                                        <input type="number" class="form-control" id="threadsCount" value="4" min="1" max="16">
-                                    </div>
-                                    <div class="mb-2">
-                                        <label for="batchSize" class="form-label">Размер пакета</label>
-                                        <input type="number" class="form-control" id="batchSize" value="100" min="10" max="1000">
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Дополнительные опции</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="deepScan" checked>
-                                        <label class="form-check-label" for="deepScan">
-                                            Глубокое сканирование
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="extractMetadata" checked>
-                                        <label class="form-check-label" for="extractMetadata">
-                                            Извлечение метаданных
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="generateThumbnails">
-                                        <label class="form-check-label" for="generateThumbnails">
-                                            Генерация миниатюр
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- API Settings -->
-                    <div class="tab-pane fade" id="api" role="tabpanel">
-                        <h5 class="mb-3">Настройки API</h5>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="openaiKey" class="form-label">OpenAI API Key</label>
-                                    <div class="input-group">
-                                        <input type="password" class="form-control" id="openaiKey" placeholder="sk-...">
-                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('openaiKey')">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                    </div>
-                                    <div class="form-text">Для семантического поиска и ИИ-анализа</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="ollamaUrl" class="form-label">Ollama URL</label>
-                                    <input type="url" class="form-control" id="ollamaUrl" placeholder="http://localhost:11434" value="http://localhost:11434">
-                                    <div class="form-text">Локальная альтернатива OpenAI</div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="apiTimeout" class="form-label">Таймаут API (секунды)</label>
-                                    <input type="number" class="form-control" id="apiTimeout" value="30" min="5" max="300">
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="apiModel" class="form-label">Модель по умолчанию</label>
-                                    <select class="form-select" id="apiModel">
-                                        <option value="gpt-3.5-turbo" selected>GPT-3.5 Turbo</option>
-                                        <option value="gpt-4">GPT-4</option>
-                                        <option value="llama2">Llama 2 (Ollama)</option>
-                                        <option value="codellama">Code Llama (Ollama)</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="maxTokens" class="form-label">Максимум токенов</label>
-                                    <input type="number" class="form-control" id="maxTokens" value="2048" min="100" max="8192">
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="temperature" class="form-label">Температура</label>
-                                    <input type="range" class="form-range" id="temperature" min="0" max="2" step="0.1" value="0.7">
-                                    <div class="d-flex justify-content-between">
-                                        <small>0.0</small>
-                                        <small id="temperatureValue">0.7</small>
-                                        <small>2.0</small>
-                                    </div>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <button class="btn btn-outline-primary" onclick="testApiConnection()">
-                                        <i class="fas fa-plug me-2"></i>
-                                        Тестировать соединение
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Interface Settings -->
-                    <div class="tab-pane fade" id="interface" role="tabpanel">
-                        <h5 class="mb-3">Настройки интерфейса</h5>
-                        
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="theme" class="form-label">Тема</label>
-                                    <select class="form-select" id="theme">
-                                        <option value="light" selected>Светлая</option>
-                                        <option value="dark">Темная</option>
-                                        <option value="auto">Автоматическая</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="resultsPerPage" class="form-label">Результатов на странице</label>
-                                    <select class="form-select" id="resultsPerPage">
-                                        <option value="10">10</option>
-                                        <option value="25" selected>25</option>
-                                        <option value="50">50</option>
-                                        <option value="100">100</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Отображение</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="showPreview" checked>
-                                        <label class="form-check-label" for="showPreview">
-                                            Показывать предпросмотр файлов
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="showMetadata" checked>
-                                        <label class="form-check-label" for="showMetadata">
-                                            Показывать метаданные
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="showTags" checked>
-                                        <label class="form-check-label" for="showTags">
-                                            Показывать теги
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="fontSize" class="form-label">Размер шрифта</label>
-                                    <select class="form-select" id="fontSize">
-                                        <option value="small">Маленький</option>
-                                        <option value="medium" selected>Средний</option>
-                                        <option value="large">Большой</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label for="animationSpeed" class="form-label">Скорость анимации</label>
-                                    <select class="form-select" id="animationSpeed">
-                                        <option value="slow">Медленная</option>
-                                        <option value="normal" selected>Обычная</option>
-                                        <option value="fast">Быстрая</option>
-                                        <option value="none">Без анимации</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-3">
-                                    <label class="form-label">Уведомления</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="showNotifications" checked>
-                                        <label class="form-check-label" for="showNotifications">
-                                            Показывать уведомления
-                                        </label>
-                                    </div>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="soundNotifications">
-                                        <label class="form-check-label" for="soundNotifications">
-                                            Звуковые уведомления
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- GitHub Settings -->
-                    <div class="tab-pane fade" id="github" role="tabpanel">
-                        <h5 class="mb-3">Интеграция с GitHub</h5>
-                        
-                        <div class="row">
-                            <div class="col-md-8">
-                                <!-- GitHub Configuration -->
-                                <div class="card mb-4">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-cog me-2"></i>
-                                            Настройки подключения
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="githubToken" class="form-label">GitHub Token</label>
-                                                    <div class="input-group">
-                                                        <input type="password" class="form-control" id="githubToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx">
-                                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePasswordVisibility('githubToken')">
-                                                            <i class="fas fa-eye" id="githubTokenIcon"></i>
-                                                        </button>
-                                                    </div>
-                                                    <div class="form-text">
-                                                        <i class="fas fa-info-circle me-1"></i>
-                                                        Получите токен на <a href="https://github.com/settings/tokens" target="_blank">GitHub Settings</a>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="githubUsername" class="form-label">GitHub Username</label>
-                                                    <input type="text" class="form-control" id="githubUsername" placeholder="your-username">
-                                                    <div class="form-text">
-                                                        <i class="fas fa-user me-1"></i>
-                                                        Ваше имя пользователя на GitHub
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        
-                                        <div class="d-flex gap-2">
-                                            <button class="btn btn-primary" onclick="saveGitHubSettings()">
-                                                <i class="fas fa-save me-2"></i>
-                                                Сохранить настройки
-                                            </button>
-                                            
-                                            <button class="btn btn-outline-secondary" onclick="testGitHubConnection()">
-                                                <i class="fas fa-plug me-2"></i>
-                                                Проверить подключение
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- GitHub Status -->
-                                <div class="card mb-4">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">
-                                            <i class="fab fa-github me-2"></i>
-                                            Статус подключения
-                                        </h6>
-                                        <button class="btn btn-sm btn-outline-primary" onclick="checkGitHubStatus()">
-                                            <i class="fas fa-sync me-1"></i>
-                                            Обновить
-                                        </button>
-                                    </div>
-                                    <div class="card-body">
-                                        <div id="githubStatus">
-                                            <div class="d-flex align-items-center">
-                                                <div class="spinner-border spinner-border-sm me-2" role="status">
-                                                    <span class="visually-hidden">Загрузка...</span>
-                                                </div>
-                                                <span>Проверка статуса...</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Backup Management -->
-                                <div class="card mb-4">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-cloud-upload-alt me-2"></i>
-                                            Управление резервными копиями
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="backupName" class="form-label">Название резервной копии</label>
-                                                    <input type="text" class="form-control" id="backupName" placeholder="backup_" value="">
-                                                    <div class="form-text">Если не указано, будет использована текущая дата</div>
-                                                </div>
-                                                
-                                                <div class="mb-3">
-                                                    <label class="form-label">Включить в резервную копию</label>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="includeSettings" checked>
-                                                        <label class="form-check-label" for="includeSettings">
-                                                            Настройки системы
-                                                        </label>
-                                                    </div>
-                                                    <div class="form-check">
-                                                        <input class="form-check-input" type="checkbox" id="includeFiles" checked>
-                                                        <label class="form-check-label" for="includeFiles">
-                                                            Структура файлов и статистика
-                                                        </label>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="col-md-6">
-                                                <div class="d-grid gap-2">
-                                                    <button class="btn btn-primary" onclick="createBackup()">
-                                                        <i class="fas fa-cloud-upload-alt me-2"></i>
-                                                        Создать резервную копию
-                                                    </button>
-                                                    
-                                                    <button class="btn btn-outline-primary" onclick="syncWithGitHub()">
-                                                        <i class="fas fa-sync me-2"></i>
-                                                        Синхронизировать
-                                                    </button>
-                                                    
-                                                    <button class="btn btn-outline-secondary" onclick="loadBackupsList()">
-                                                        <i class="fas fa-list me-2"></i>
-                                                        Список резервных копий
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Repository Management -->
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-code-branch me-2"></i>
-                                            Управление репозиторием
-                                        </h6>
-                                    </div>
-                                    <div class="card-body">
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <div class="mb-3">
-                                                    <label for="repoDescription" class="form-label">Описание репозитория</label>
-                                                    <textarea class="form-control" id="repoDescription" rows="3" placeholder="DevDataSorter backup repository"></textarea>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="col-md-6">
-                                                <div class="d-grid gap-2">
-                                                    <button class="btn btn-success" onclick="createRepository()">
-                                                        <i class="fas fa-plus me-2"></i>
-                                                        Создать репозиторий
-                                                    </button>
-                                                    
-                                                    <button class="btn btn-outline-info" onclick="openRepository()" id="openRepoBtn" style="display: none;">
-                                                        <i class="fas fa-external-link-alt me-2"></i>
-                                                        Открыть в GitHub
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <!-- Backups List -->
-                                <div class="card">
-                                    <div class="card-header d-flex justify-content-between align-items-center">
-                                        <h6 class="mb-0">
-                                            <i class="fas fa-history me-2"></i>
-                                            Резервные копии
-                                        </h6>
-                                        <button class="btn btn-sm btn-outline-secondary" onclick="loadBackupsList()">
-                                            <i class="fas fa-sync me-1"></i>
-                                        </button>
-                                    </div>
-                                    <div class="card-body p-0">
-                                        <div id="backupsList">
-                                            <div class="p-3 text-center text-muted">
-                                                <i class="fas fa-cloud me-2"></i>
-                                                Загрузка списка...
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+.env</textarea
+                  >
                 </div>
+              </div>
             </div>
+          </div>
+
+          <!-- Indexing Settings -->
+          <div class="tab-pane fade" id="indexing" role="tabpanel">
+            <h5 class="mb-3">Настройки индексации</h5>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="indexingMode" class="form-label"
+                    >Режим индексации</label
+                  >
+                  <select class="form-select" id="indexingMode">
+                    <option value="incremental" selected>
+                      Инкрементальная
+                    </option>
+                    <option value="full">Полная</option>
+                    <option value="smart">Умная</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="indexingInterval" class="form-label"
+                    >Интервал автоиндексации (часы)</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="indexingInterval"
+                    value="24"
+                    min="1"
+                    max="168"
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="maxIndexSize" class="form-label"
+                    >Максимальный размер индекса (GB)</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="maxIndexSize"
+                    value="10"
+                    min="1"
+                    max="100"
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Параметры производительности</label>
+                  <div class="mb-2">
+                    <label for="threadsCount" class="form-label"
+                      >Количество потоков</label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="threadsCount"
+                      value="4"
+                      min="1"
+                      max="16"
+                    />
+                  </div>
+                  <div class="mb-2">
+                    <label for="batchSize" class="form-label"
+                      >Размер пакета</label
+                    >
+                    <input
+                      type="number"
+                      class="form-control"
+                      id="batchSize"
+                      value="100"
+                      min="10"
+                      max="1000"
+                    />
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Дополнительные опции</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="deepScan"
+                      checked
+                    />
+                    <label class="form-check-label" for="deepScan">
+                      Глубокое сканирование
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="extractMetadata"
+                      checked
+                    />
+                    <label class="form-check-label" for="extractMetadata">
+                      Извлечение метаданных
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="generateThumbnails"
+                    />
+                    <label class="form-check-label" for="generateThumbnails">
+                      Генерация миниатюр
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- API Settings -->
+          <div class="tab-pane fade" id="api" role="tabpanel">
+            <h5 class="mb-3">Настройки API</h5>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="openaiKey" class="form-label"
+                    >OpenAI API Key</label
+                  >
+                  <div class="input-group">
+                    <input
+                      type="password"
+                      class="form-control"
+                      id="openaiKey"
+                      placeholder="sk-..."
+                    />
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      onclick="togglePassword('openaiKey')"
+                    >
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </div>
+                  <div class="form-text">
+                    Для семантического поиска и ИИ-анализа
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="ollamaUrl" class="form-label">Ollama URL</label>
+                  <input
+                    type="url"
+                    class="form-control"
+                    id="ollamaUrl"
+                    placeholder="http://localhost:11434"
+                    value="http://localhost:11434"
+                  />
+                  <div class="form-text">Локальная альтернатива OpenAI</div>
+                </div>
+
+                <div class="mb-3">
+                  <label for="apiTimeout" class="form-label"
+                    >Таймаут API (секунды)</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="apiTimeout"
+                    value="30"
+                    min="5"
+                    max="300"
+                  />
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="apiModel" class="form-label"
+                    >Модель по умолчанию</label
+                  >
+                  <select class="form-select" id="apiModel">
+                    <option value="gpt-3.5-turbo" selected>
+                      GPT-3.5 Turbo
+                    </option>
+                    <option value="gpt-4">GPT-4</option>
+                    <option value="llama2">Llama 2 (Ollama)</option>
+                    <option value="codellama">Code Llama (Ollama)</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="maxTokens" class="form-label"
+                    >Максимум токенов</label
+                  >
+                  <input
+                    type="number"
+                    class="form-control"
+                    id="maxTokens"
+                    value="2048"
+                    min="100"
+                    max="8192"
+                  />
+                </div>
+
+                <div class="mb-3">
+                  <label for="temperature" class="form-label"
+                    >Температура</label
+                  >
+                  <input
+                    type="range"
+                    class="form-range"
+                    id="temperature"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    value="0.7"
+                  />
+                  <div class="d-flex justify-content-between">
+                    <small>0.0</small>
+                    <small id="temperatureValue">0.7</small>
+                    <small>2.0</small>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <button
+                    class="btn btn-outline-primary"
+                    onclick="testApiConnection()"
+                  >
+                    <i class="fas fa-plug me-2"></i>
+                    Тестировать соединение
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interface Settings -->
+          <div class="tab-pane fade" id="interface" role="tabpanel">
+            <h5 class="mb-3">Настройки интерфейса</h5>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="theme" class="form-label">Тема</label>
+                  <select class="form-select" id="theme">
+                    <option value="light" selected>Светлая</option>
+                    <option value="dark">Темная</option>
+                    <option value="auto">Автоматическая</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="resultsPerPage" class="form-label"
+                    >Результатов на странице</label
+                  >
+                  <select class="form-select" id="resultsPerPage">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Отображение</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="showPreview"
+                      checked
+                    />
+                    <label class="form-check-label" for="showPreview">
+                      Показывать предпросмотр файлов
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="showMetadata"
+                      checked
+                    />
+                    <label class="form-check-label" for="showMetadata">
+                      Показывать метаданные
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="showTags"
+                      checked
+                    />
+                    <label class="form-check-label" for="showTags">
+                      Показывать теги
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="fontSize" class="form-label">Размер шрифта</label>
+                  <select class="form-select" id="fontSize">
+                    <option value="small">Маленький</option>
+                    <option value="medium" selected>Средний</option>
+                    <option value="large">Большой</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label for="animationSpeed" class="form-label"
+                    >Скорость анимации</label
+                  >
+                  <select class="form-select" id="animationSpeed">
+                    <option value="slow">Медленная</option>
+                    <option value="normal" selected>Обычная</option>
+                    <option value="fast">Быстрая</option>
+                    <option value="none">Без анимации</option>
+                  </select>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Уведомления</label>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="showNotifications"
+                      checked
+                    />
+                    <label class="form-check-label" for="showNotifications">
+                      Показывать уведомления
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="soundNotifications"
+                    />
+                    <label class="form-check-label" for="soundNotifications">
+                      Звуковые уведомления
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- GitHub Settings -->
+          <div class="tab-pane fade" id="github" role="tabpanel">
+            <h5 class="mb-3">Интеграция с GitHub</h5>
+
+            <div class="row">
+              <div class="col-md-8">
+                <!-- GitHub Configuration -->
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <h6 class="mb-0">
+                      <i class="fas fa-cog me-2"></i>
+                      Настройки подключения
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label for="githubToken" class="form-label"
+                            >GitHub Token</label
+                          >
+                          <div class="input-group">
+                            <input
+                              type="password"
+                              class="form-control"
+                              id="githubToken"
+                              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                            />
+                            <button
+                              class="btn btn-outline-secondary"
+                              type="button"
+                              onclick="togglePasswordVisibility('githubToken')"
+                            >
+                              <i class="fas fa-eye" id="githubTokenIcon"></i>
+                            </button>
+                          </div>
+                          <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Получите токен на
+                            <a
+                              href="https://github.com/settings/tokens"
+                              target="_blank"
+                              >GitHub Settings</a
+                            >
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label for="githubUsername" class="form-label"
+                            >GitHub Username</label
+                          >
+                          <input
+                            type="text"
+                            class="form-control"
+                            id="githubUsername"
+                            placeholder="your-username"
+                          />
+                          <div class="form-text">
+                            <i class="fas fa-user me-1"></i>
+                            Ваше имя пользователя на GitHub
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                      <button
+                        class="btn btn-primary"
+                        onclick="saveGitHubSettings()"
+                      >
+                        <i class="fas fa-save me-2"></i>
+                        Сохранить настройки
+                      </button>
+
+                      <button
+                        class="btn btn-outline-secondary"
+                        onclick="testGitHubConnection()"
+                      >
+                        <i class="fas fa-plug me-2"></i>
+                        Проверить подключение
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- GitHub Status -->
+                <div class="card mb-4">
+                  <div
+                    class="card-header d-flex justify-content-between align-items-center"
+                  >
+                    <h6 class="mb-0">
+                      <i class="fab fa-github me-2"></i>
+                      Статус подключения
+                    </h6>
+                    <button
+                      class="btn btn-sm btn-outline-primary"
+                      onclick="checkGitHubStatus()"
+                    >
+                      <i class="fas fa-sync me-1"></i>
+                      Обновить
+                    </button>
+                  </div>
+                  <div class="card-body">
+                    <div id="githubStatus">
+                      <div class="d-flex align-items-center">
+                        <div
+                          class="spinner-border spinner-border-sm me-2"
+                          role="status"
+                        >
+                          <span class="visually-hidden">Загрузка...</span>
+                        </div>
+                        <span>Проверка статуса...</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Backup Management -->
+                <div class="card mb-4">
+                  <div class="card-header">
+                    <h6 class="mb-0">
+                      <i class="fas fa-cloud-upload-alt me-2"></i>
+                      Управление резервными копиями
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label for="backupName" class="form-label"
+                            >Название резервной копии</label
+                          >
+                          <input
+                            type="text"
+                            class="form-control"
+                            id="backupName"
+                            placeholder="backup_"
+                            value=""
+                          />
+                          <div class="form-text">
+                            Если не указано, будет использована текущая дата
+                          </div>
+                        </div>
+
+                        <div class="mb-3">
+                          <label class="form-label"
+                            >Включить в резервную копию</label
+                          >
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              id="includeSettings"
+                              checked
+                            />
+                            <label
+                              class="form-check-label"
+                              for="includeSettings"
+                            >
+                              Настройки системы
+                            </label>
+                          </div>
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              id="includeFiles"
+                              checked
+                            />
+                            <label class="form-check-label" for="includeFiles">
+                              Структура файлов и статистика
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <div class="d-grid gap-2">
+                          <button
+                            class="btn btn-primary"
+                            onclick="createBackup()"
+                          >
+                            <i class="fas fa-cloud-upload-alt me-2"></i>
+                            Создать резервную копию
+                          </button>
+
+                          <button
+                            class="btn btn-outline-primary"
+                            onclick="syncWithGitHub()"
+                          >
+                            <i class="fas fa-sync me-2"></i>
+                            Синхронизировать
+                          </button>
+
+                          <button
+                            class="btn btn-outline-secondary"
+                            onclick="loadBackupsList()"
+                          >
+                            <i class="fas fa-list me-2"></i>
+                            Список резервных копий
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Repository Management -->
+                <div class="card">
+                  <div class="card-header">
+                    <h6 class="mb-0">
+                      <i class="fas fa-code-branch me-2"></i>
+                      Управление репозиторием
+                    </h6>
+                  </div>
+                  <div class="card-body">
+                    <div class="row">
+                      <div class="col-md-6">
+                        <div class="mb-3">
+                          <label for="repoDescription" class="form-label"
+                            >Описание репозитория</label
+                          >
+                          <textarea
+                            class="form-control"
+                            id="repoDescription"
+                            rows="3"
+                            placeholder="DevDataSorter backup repository"
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <div class="col-md-6">
+                        <div class="d-grid gap-2">
+                          <button
+                            class="btn btn-success"
+                            onclick="createRepository()"
+                          >
+                            <i class="fas fa-plus me-2"></i>
+                            Создать репозиторий
+                          </button>
+
+                          <button
+                            class="btn btn-outline-info"
+                            onclick="openRepository()"
+                            id="openRepoBtn"
+                            style="display: none"
+                          >
+                            <i class="fas fa-external-link-alt me-2"></i>
+                            Открыть в GitHub
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-md-4">
+                <!-- Backups List -->
+                <div class="card">
+                  <div
+                    class="card-header d-flex justify-content-between align-items-center"
+                  >
+                    <h6 class="mb-0">
+                      <i class="fas fa-history me-2"></i>
+                      Резервные копии
+                    </h6>
+                    <button
+                      class="btn btn-sm btn-outline-secondary"
+                      onclick="loadBackupsList()"
+                    >
+                      <i class="fas fa-sync me-1"></i>
+                    </button>
+                  </div>
+                  <div class="card-body p-0">
+                    <div id="backupsList">
+                      <div class="p-3 text-center text-muted">
+                        <i class="fas fa-cloud me-2"></i>
+                        Загрузка списка...
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
+      </div>
     </div>
+  </div>
 </div>
 
 <!-- Action Buttons -->
 <div class="row mt-4">
-    <div class="col-12">
-        <div class="d-flex gap-2 justify-content-end">
-            <button class="btn btn-outline-secondary" onclick="resetSettings()">
-                <i class="fas fa-undo me-2"></i>
-                Сбросить
-            </button>
-            <button class="btn btn-outline-primary" onclick="exportSettings()">
-                <i class="fas fa-download me-2"></i>
-                Экспорт
-            </button>
-            <button class="btn btn-outline-primary" onclick="importSettings()">
-                <i class="fas fa-upload me-2"></i>
-                Импорт
-            </button>
-            <button class="btn btn-success" onclick="saveAllSettings()">
-                <i class="fas fa-save me-2"></i>
-                Сохранить все
-            </button>
-        </div>
+  <div class="col-12">
+    <div class="d-flex gap-2 justify-content-end">
+      <button class="btn btn-outline-secondary" onclick="resetSettings()">
+        <i class="fas fa-undo me-2"></i>
+        Сбросить
+      </button>
+      <button class="btn btn-outline-primary" onclick="exportSettings()">
+        <i class="fas fa-download me-2"></i>
+        Экспорт
+      </button>
+      <button class="btn btn-outline-primary" onclick="importSettings()">
+        <i class="fas fa-upload me-2"></i>
+        Импорт
+      </button>
+      <button class="btn btn-success" onclick="saveAllSettings()">
+        <i class="fas fa-save me-2"></i>
+        Сохранить все
+      </button>
     </div>
+  </div>
 </div>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-// Settings management
-let currentSettings = {};
+  // Settings management
+  let currentSettings = {};
 
-// Initialize settings page
-document.addEventListener('DOMContentLoaded', function() {
+  // Initialize settings page
+  document.addEventListener("DOMContentLoaded", function () {
     loadSettings();
     initializeEventListeners();
-});
+  });
 
-function initializeEventListeners() {
+  function initializeEventListeners() {
     // Range inputs
-    document.getElementById('similarityThreshold').addEventListener('input', function() {
-        document.getElementById('similarityValue').textContent = this.value + '%';
-    });
-    
-    document.getElementById('temperature').addEventListener('input', function() {
-        document.getElementById('temperatureValue').textContent = this.value;
-    });
-}
+    document
+      .getElementById("similarityThreshold")
+      .addEventListener("input", function () {
+        document.getElementById("similarityValue").textContent =
+          this.value + "%";
+      });
 
-// Load settings from server
-async function loadSettings() {
+    document
+      .getElementById("temperature")
+      .addEventListener("input", function () {
+        document.getElementById("temperatureValue").textContent = this.value;
+      });
+  }
+
+  // Load settings from server
+  async function loadSettings() {
     try {
-        showLoading('Загрузка настроек...');
-        const response = await apiRequest('/api/settings');
-        
-        if (response.success) {
-            currentSettings = response.data;
-            populateSettings(currentSettings);
-        } else {
-            showAlert('Ошибка загрузки настроек: ' + response.error, 'danger');
-        }
+      showLoading("Загрузка настроек...");
+      const response = await apiRequest("/api/settings");
+
+      if (response.success) {
+        currentSettings = response.data;
+        populateSettings(currentSettings);
+      } else {
+        showAlert("Ошибка загрузки настроек: " + response.error, "danger");
+      }
     } catch (error) {
-        console.error('Error loading settings:', error);
-        showAlert('Ошибка загрузки настроек', 'danger');
+      console.error("Error loading settings:", error);
+      showAlert("Ошибка загрузки настроек", "danger");
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// Populate form with settings
-function populateSettings(settings) {
+  // Populate form with settings
+  function populateSettings(settings) {
     // General settings
-    setValue('defaultPath', settings.general?.defaultPath || '');
-    setValue('language', settings.general?.language || 'ru');
-    setValue('maxFileSize', settings.general?.maxFileSize || 100);
-    setValue('autoScan', settings.general?.autoScan !== false);
-    setValue('autoBackup', settings.general?.autoBackup !== false);
-    setValue('autoUpdate', settings.general?.autoUpdate || false);
-    setValue('logLevel', settings.general?.logLevel || 'INFO');
-    
-    // Search settings
-    setValue('searchEngine', settings.search?.engine || 'semantic');
-    setValue('maxResults', settings.search?.maxResults || 50);
-    setValue('similarityThreshold', settings.search?.similarityThreshold || 70);
-    document.getElementById('similarityValue').textContent = (settings.search?.similarityThreshold || 70) + '%';
-    
-    // File types
-    setValue('indexCode', settings.search?.fileTypes?.code !== false);
-    setValue('indexDocs', settings.search?.fileTypes?.docs !== false);
-    setValue('indexConfigs', settings.search?.fileTypes?.configs !== false);
-    setValue('indexImages', settings.search?.fileTypes?.images || false);
-    setValue('indexArchives', settings.search?.fileTypes?.archives || false);
-    setValue('indexOther', settings.search?.fileTypes?.other || false);
-    
-    setValue('excludePatterns', settings.search?.excludePatterns?.join('\n') || 'node_modules\n.git\n__pycache__\n*.pyc\n.env');
-    
-    // Indexing settings
-    setValue('indexingMode', settings.indexing?.mode || 'incremental');
-    setValue('indexingInterval', settings.indexing?.interval || 24);
-    setValue('maxIndexSize', settings.indexing?.maxSize || 10);
-    setValue('threadsCount', settings.indexing?.threads || 4);
-    setValue('batchSize', settings.indexing?.batchSize || 100);
-    setValue('deepScan', settings.indexing?.deepScan !== false);
-    setValue('extractMetadata', settings.indexing?.extractMetadata !== false);
-    setValue('generateThumbnails', settings.indexing?.generateThumbnails || false);
-    
-    // API settings
-    setValue('openaiKey', settings.api?.openaiKey || '');
-    setValue('ollamaUrl', settings.api?.ollamaUrl || 'http://localhost:11434');
-    setValue('apiTimeout', settings.api?.timeout || 30);
-    setValue('apiModel', settings.api?.model || 'gpt-3.5-turbo');
-    setValue('maxTokens', settings.api?.maxTokens || 2048);
-    setValue('temperature', settings.api?.temperature || 0.7);
-    document.getElementById('temperatureValue').textContent = settings.api?.temperature || 0.7;
-    
-    // Interface settings
-    setValue('theme', settings.interface?.theme || 'light');
-    setValue('resultsPerPage', settings.interface?.resultsPerPage || 25);
-    setValue('showPreview', settings.interface?.showPreview !== false);
-    setValue('showMetadata', settings.interface?.showMetadata !== false);
-    setValue('showTags', settings.interface?.showTags !== false);
-    setValue('fontSize', settings.interface?.fontSize || 'medium');
-    setValue('animationSpeed', settings.interface?.animationSpeed || 'normal');
-    setValue('showNotifications', settings.interface?.showNotifications !== false);
-    setValue('soundNotifications', settings.interface?.soundNotifications || false);
-}
+    setValue("defaultPath", settings.general?.defaultPath || "");
+    setValue("language", settings.general?.language || "ru");
+    setValue("maxFileSize", settings.general?.maxFileSize || 100);
+    setValue("autoScan", settings.general?.autoScan !== false);
+    setValue("autoBackup", settings.general?.autoBackup !== false);
+    setValue("autoUpdate", settings.general?.autoUpdate || false);
+    setValue("logLevel", settings.general?.logLevel || "INFO");
 
-// Set form value
-function setValue(id, value) {
+    // Search settings
+    setValue("searchEngine", settings.search?.engine || "semantic");
+    setValue("maxResults", settings.search?.maxResults || 50);
+    setValue("similarityThreshold", settings.search?.similarityThreshold || 70);
+    document.getElementById("similarityValue").textContent =
+      (settings.search?.similarityThreshold || 70) + "%";
+
+    // File types
+    setValue("indexCode", settings.search?.fileTypes?.code !== false);
+    setValue("indexDocs", settings.search?.fileTypes?.docs !== false);
+    setValue("indexConfigs", settings.search?.fileTypes?.configs !== false);
+    setValue("indexImages", settings.search?.fileTypes?.images || false);
+    setValue("indexArchives", settings.search?.fileTypes?.archives || false);
+    setValue("indexOther", settings.search?.fileTypes?.other || false);
+
+    setValue(
+      "excludePatterns",
+      settings.search?.excludePatterns?.join("\n") ||
+        "node_modules\n.git\n__pycache__\n*.pyc\n.env"
+    );
+
+    // Indexing settings
+    setValue("indexingMode", settings.indexing?.mode || "incremental");
+    setValue("indexingInterval", settings.indexing?.interval || 24);
+    setValue("maxIndexSize", settings.indexing?.maxSize || 10);
+    setValue("threadsCount", settings.indexing?.threads || 4);
+    setValue("batchSize", settings.indexing?.batchSize || 100);
+    setValue("deepScan", settings.indexing?.deepScan !== false);
+    setValue("extractMetadata", settings.indexing?.extractMetadata !== false);
+    setValue(
+      "generateThumbnails",
+      settings.indexing?.generateThumbnails || false
+    );
+
+    // API settings
+    setValue("openaiKey", settings.api?.openaiKey || "");
+    setValue("ollamaUrl", settings.api?.ollamaUrl || "http://localhost:11434");
+    setValue("apiTimeout", settings.api?.timeout || 30);
+    setValue("apiModel", settings.api?.model || "gpt-3.5-turbo");
+    setValue("maxTokens", settings.api?.maxTokens || 2048);
+    setValue("temperature", settings.api?.temperature || 0.7);
+    document.getElementById("temperatureValue").textContent =
+      settings.api?.temperature || 0.7;
+
+    // Interface settings
+    setValue("theme", settings.interface?.theme || "light");
+    setValue("resultsPerPage", settings.interface?.resultsPerPage || 25);
+    setValue("showPreview", settings.interface?.showPreview !== false);
+    setValue("showMetadata", settings.interface?.showMetadata !== false);
+    setValue("showTags", settings.interface?.showTags !== false);
+    setValue("fontSize", settings.interface?.fontSize || "medium");
+    setValue("animationSpeed", settings.interface?.animationSpeed || "normal");
+    setValue(
+      "showNotifications",
+      settings.interface?.showNotifications !== false
+    );
+    setValue(
+      "soundNotifications",
+      settings.interface?.soundNotifications || false
+    );
+  }
+
+  // Set form value
+  function setValue(id, value) {
     const element = document.getElementById(id);
     if (!element) return;
-    
-    if (element.type === 'checkbox') {
-        element.checked = value;
-    } else {
-        element.value = value;
-    }
-}
 
-// Get form value
-function getValue(id) {
+    if (element.type === "checkbox") {
+      element.checked = value;
+    } else {
+      element.value = value;
+    }
+  }
+
+  // Get form value
+  function getValue(id) {
     const element = document.getElementById(id);
     if (!element) return null;
-    
-    if (element.type === 'checkbox') {
-        return element.checked;
-    } else if (element.type === 'number' || element.type === 'range') {
-        return parseFloat(element.value);
+
+    if (element.type === "checkbox") {
+      return element.checked;
+    } else if (element.type === "number" || element.type === "range") {
+      return parseFloat(element.value);
     } else {
-        return element.value;
+      return element.value;
     }
-}
+  }
 
-// Collect all settings
-function collectSettings() {
+  // Collect all settings
+  function collectSettings() {
     return {
-        general: {
-            defaultPath: getValue('defaultPath'),
-            language: getValue('language'),
-            maxFileSize: getValue('maxFileSize'),
-            autoScan: getValue('autoScan'),
-            autoBackup: getValue('autoBackup'),
-            autoUpdate: getValue('autoUpdate'),
-            logLevel: getValue('logLevel')
+      general: {
+        defaultPath: getValue("defaultPath"),
+        language: getValue("language"),
+        maxFileSize: getValue("maxFileSize"),
+        autoScan: getValue("autoScan"),
+        autoBackup: getValue("autoBackup"),
+        autoUpdate: getValue("autoUpdate"),
+        logLevel: getValue("logLevel"),
+      },
+      search: {
+        engine: getValue("searchEngine"),
+        maxResults: getValue("maxResults"),
+        similarityThreshold: getValue("similarityThreshold"),
+        fileTypes: {
+          code: getValue("indexCode"),
+          docs: getValue("indexDocs"),
+          configs: getValue("indexConfigs"),
+          images: getValue("indexImages"),
+          archives: getValue("indexArchives"),
+          other: getValue("indexOther"),
         },
-        search: {
-            engine: getValue('searchEngine'),
-            maxResults: getValue('maxResults'),
-            similarityThreshold: getValue('similarityThreshold'),
-            fileTypes: {
-                code: getValue('indexCode'),
-                docs: getValue('indexDocs'),
-                configs: getValue('indexConfigs'),
-                images: getValue('indexImages'),
-                archives: getValue('indexArchives'),
-                other: getValue('indexOther')
-            },
-            excludePatterns: getValue('excludePatterns').split('\n').filter(p => p.trim())
-        },
-        indexing: {
-            mode: getValue('indexingMode'),
-            interval: getValue('indexingInterval'),
-            maxSize: getValue('maxIndexSize'),
-            threads: getValue('threadsCount'),
-            batchSize: getValue('batchSize'),
-            deepScan: getValue('deepScan'),
-            extractMetadata: getValue('extractMetadata'),
-            generateThumbnails: getValue('generateThumbnails')
-        },
-        api: {
-            openaiKey: getValue('openaiKey'),
-            ollamaUrl: getValue('ollamaUrl'),
-            timeout: getValue('apiTimeout'),
-            model: getValue('apiModel'),
-            maxTokens: getValue('maxTokens'),
-            temperature: getValue('temperature')
-        },
-        interface: {
-            theme: getValue('theme'),
-            resultsPerPage: getValue('resultsPerPage'),
-            showPreview: getValue('showPreview'),
-            showMetadata: getValue('showMetadata'),
-            showTags: getValue('showTags'),
-            fontSize: getValue('fontSize'),
-            animationSpeed: getValue('animationSpeed'),
-            showNotifications: getValue('showNotifications'),
-            soundNotifications: getValue('soundNotifications')
-        }
+        excludePatterns: getValue("excludePatterns")
+          .split("\n")
+          .filter((p) => p.trim()),
+      },
+      indexing: {
+        mode: getValue("indexingMode"),
+        interval: getValue("indexingInterval"),
+        maxSize: getValue("maxIndexSize"),
+        threads: getValue("threadsCount"),
+        batchSize: getValue("batchSize"),
+        deepScan: getValue("deepScan"),
+        extractMetadata: getValue("extractMetadata"),
+        generateThumbnails: getValue("generateThumbnails"),
+      },
+      api: {
+        openaiKey: getValue("openaiKey"),
+        ollamaUrl: getValue("ollamaUrl"),
+        timeout: getValue("apiTimeout"),
+        model: getValue("apiModel"),
+        maxTokens: getValue("maxTokens"),
+        temperature: getValue("temperature"),
+      },
+      interface: {
+        theme: getValue("theme"),
+        resultsPerPage: getValue("resultsPerPage"),
+        showPreview: getValue("showPreview"),
+        showMetadata: getValue("showMetadata"),
+        showTags: getValue("showTags"),
+        fontSize: getValue("fontSize"),
+        animationSpeed: getValue("animationSpeed"),
+        showNotifications: getValue("showNotifications"),
+        soundNotifications: getValue("soundNotifications"),
+      },
     };
-}
+  }
 
-// Save all settings
-async function saveAllSettings() {
+  // Save all settings
+  async function saveAllSettings() {
     try {
-        showLoading('Сохранение настроек...');
-        const settings = collectSettings();
-        
-        const response = await apiRequest('/api/settings', {
-            method: 'POST',
-            body: JSON.stringify(settings)
-        });
-        
-        if (response.success) {
-            showAlert('Настройки успешно сохранены', 'success');
-            currentSettings = settings;
-        } else {
-            showAlert('Ошибка сохранения настроек: ' + response.error, 'danger');
-        }
+      showLoading("Сохранение настроек...");
+      const settings = collectSettings();
+
+      const response = await apiRequest("/api/settings", {
+        method: "POST",
+        body: JSON.stringify(settings),
+      });
+
+      if (response.success) {
+        showAlert("Настройки успешно сохранены", "success");
+        currentSettings = settings;
+      } else {
+        showAlert("Ошибка сохранения настроек: " + response.error, "danger");
+      }
     } catch (error) {
-        console.error('Error saving settings:', error);
-        showAlert('Ошибка сохранения настроек', 'danger');
+      console.error("Error saving settings:", error);
+      showAlert("Ошибка сохранения настроек", "danger");
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// Reset settings to defaults
-function resetSettings() {
-    if (confirm('Вы уверены, что хотите сбросить все настройки к значениям по умолчанию?')) {
-        populateSettings({});
-        showAlert('Настройки сброшены к значениям по умолчанию', 'info');
+  // Reset settings to defaults
+  function resetSettings() {
+    if (
+      confirm(
+        "Вы уверены, что хотите сбросить все настройки к значениям по умолчанию?"
+      )
+    ) {
+      populateSettings({});
+      showAlert("Настройки сброшены к значениям по умолчанию", "info");
     }
-}
+  }
 
-// Export settings
-function exportSettings() {
+  // Export settings
+  function exportSettings() {
     const settings = collectSettings();
     const dataStr = JSON.stringify(settings, null, 2);
-    const dataBlob = new Blob([dataStr], {type: 'application/json'});
-    
-    const link = document.createElement('a');
+    const dataBlob = new Blob([dataStr], { type: "application/json" });
+
+    const link = document.createElement("a");
     link.href = URL.createObjectURL(dataBlob);
-    link.download = 'devdatasorter-settings.json';
+    link.download = "devdatasorter-settings.json";
     link.click();
-    
-    showAlert('Настройки экспортированы', 'success');
-}
 
-// Import settings
-function importSettings() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    
-    input.onchange = function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const settings = JSON.parse(e.target.result);
-                populateSettings(settings);
-                showAlert('Настройки импортированы', 'success');
-            } catch (error) {
-                showAlert('Ошибка импорта настроек: неверный формат файла', 'danger');
-            }
-        };
-        reader.readAsText(file);
+    showAlert("Настройки экспортированы", "success");
+  }
+
+  // Import settings
+  function importSettings() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+
+    input.onchange = function (event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const settings = JSON.parse(e.target.result);
+          populateSettings(settings);
+          showAlert("Настройки импортированы", "success");
+        } catch (error) {
+          showAlert("Ошибка импорта настроек: неверный формат файла", "danger");
+        }
+      };
+      reader.readAsText(file);
     };
-    
-    input.click();
-}
 
-// Select folder
-function selectFolder() {
+    input.click();
+  }
+
+  // Select folder
+  function selectFolder() {
     // This would typically open a folder selection dialog
     // For now, just show an alert
-    showAlert('Функция выбора папки будет реализована в следующей версии', 'info');
-}
+    showAlert(
+      "Функция выбора папки будет реализована в следующей версии",
+      "info"
+    );
+  }
 
-// Toggle password visibility
-function togglePassword(inputId) {
+  // Toggle password visibility
+  function togglePassword(inputId) {
     const input = document.getElementById(inputId);
-    const icon = input.nextElementSibling.querySelector('i');
-    
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fas fa-eye-slash';
+    const icon = input.nextElementSibling.querySelector("i");
+
+    if (input.type === "password") {
+      input.type = "text";
+      icon.className = "fas fa-eye-slash";
     } else {
-        input.type = 'password';
-        icon.className = 'fas fa-eye';
+      input.type = "password";
+      icon.className = "fas fa-eye";
     }
-}
+  }
 
-// Test API connection
-async function testApiConnection() {
+  // Test API connection
+  async function testApiConnection() {
     try {
-        showLoading('Тестирование соединения...');
-        
-        const settings = {
-            openaiKey: getValue('openaiKey'),
-            ollamaUrl: getValue('ollamaUrl'),
-            model: getValue('apiModel'),
-            timeout: getValue('apiTimeout')
-        };
-        
-        const response = await apiRequest('/api/test-connection', {
-            method: 'POST',
-            body: JSON.stringify(settings)
-        });
-        
-        if (response.success) {
-            showAlert('Соединение успешно установлено', 'success');
-        } else {
-            showAlert('Ошибка соединения: ' + response.error, 'danger');
-        }
+      showLoading("Тестирование соединения...");
+
+      const settings = {
+        openaiKey: getValue("openaiKey"),
+        ollamaUrl: getValue("ollamaUrl"),
+        model: getValue("apiModel"),
+        timeout: getValue("apiTimeout"),
+      };
+
+      const response = await apiRequest("/api/test-connection", {
+        method: "POST",
+        body: JSON.stringify(settings),
+      });
+
+      if (response.success) {
+        showAlert("Соединение успешно установлено", "success");
+      } else {
+        showAlert("Ошибка соединения: " + response.error, "danger");
+      }
     } catch (error) {
-        console.error('Error testing connection:', error);
-        showAlert('Ошибка тестирования соединения', 'danger');
+      console.error("Error testing connection:", error);
+      showAlert("Ошибка тестирования соединения", "danger");
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// GitHub Integration Functions
+  // GitHub Integration Functions
 
-// Toggle password visibility
-function togglePasswordVisibility(inputId) {
+  // Toggle password visibility
+  function togglePasswordVisibility(inputId) {
     const input = document.getElementById(inputId);
-    const icon = document.getElementById(inputId + 'Icon');
-    
-    if (input.type === 'password') {
-        input.type = 'text';
-        icon.className = 'fas fa-eye-slash';
+    const icon = document.getElementById(inputId + "Icon");
+
+    if (input.type === "password") {
+      input.type = "text";
+      icon.className = "fas fa-eye-slash";
     } else {
-        input.type = 'password';
-        icon.className = 'fas fa-eye';
+      input.type = "password";
+      icon.className = "fas fa-eye";
     }
-}
+  }
 
-// Save GitHub settings
-async function saveGitHubSettings() {
+  // Save GitHub settings
+  async function saveGitHubSettings() {
     try {
-        const token = document.getElementById('githubToken').value.trim();
-        const username = document.getElementById('githubUsername').value.trim();
-        
-        if (!token || !username) {
-            showAlert('Пожалуйста, заполните все поля', 'warning');
-            return;
-        }
-        
-        showLoading('Сохранение настроек GitHub...');
-        
-        const response = await apiRequest('/api/github/settings', {
-            method: 'POST',
-            body: JSON.stringify({
-                token: token,
-                username: username
-            })
-        });
-        
-        if (response.success) {
-            showAlert('Настройки GitHub успешно сохранены', 'success');
-            // Clear the token field for security
-            document.getElementById('githubToken').value = '';
-            // Refresh status
-            setTimeout(() => checkGitHubStatus(), 1000);
-        } else {
-            showAlert('Ошибка сохранения настроек: ' + response.error, 'danger');
-        }
-        
+      const token = document.getElementById("githubToken").value.trim();
+      const username = document.getElementById("githubUsername").value.trim();
+
+      if (!token || !username) {
+        showAlert("Пожалуйста, заполните все поля", "warning");
+        return;
+      }
+
+      showLoading("Сохранение настроек GitHub...");
+
+      const response = await apiRequest("/api/github/settings", {
+        method: "POST",
+        body: JSON.stringify({
+          token: token,
+          username: username,
+        }),
+      });
+
+      if (response.success) {
+        showAlert("Настройки GitHub успешно сохранены", "success");
+        // Clear the token field for security
+        document.getElementById("githubToken").value = "";
+        // Refresh status
+        setTimeout(() => checkGitHubStatus(), 1000);
+      } else {
+        showAlert("Ошибка сохранения настроек: " + response.error, "danger");
+      }
     } catch (error) {
-        console.error('Error saving GitHub settings:', error);
-        showAlert('Ошибка сохранения настроек GitHub', 'danger');
+      console.error("Error saving GitHub settings:", error);
+      showAlert("Ошибка сохранения настроек GitHub", "danger");
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// Test GitHub connection
-async function testGitHubConnection() {
+  // Test GitHub connection
+  async function testGitHubConnection() {
     try {
-        const token = document.getElementById('githubToken').value.trim();
-        const username = document.getElementById('githubUsername').value.trim();
-        
-        if (!token || !username) {
-            showAlert('Пожалуйста, заполните все поля перед проверкой', 'warning');
-            return;
-        }
-        
-        showLoading('Проверка подключения к GitHub...');
-        
-        const response = await apiRequest('/api/github/test', {
-            method: 'POST',
-            body: JSON.stringify({
-                token: token,
-                username: username
-            })
-        });
-        
-        if (response.success) {
-            showAlert('Подключение к GitHub успешно!', 'success');
-        } else {
-            showAlert('Ошибка подключения: ' + response.error, 'danger');
-        }
-        
+      const token = document.getElementById("githubToken").value.trim();
+      const username = document.getElementById("githubUsername").value.trim();
+
+      if (!token || !username) {
+        showAlert("Пожалуйста, заполните все поля перед проверкой", "warning");
+        return;
+      }
+
+      showLoading("Проверка подключения к GitHub...");
+
+      const response = await apiRequest("/api/github/test", {
+        method: "POST",
+        body: JSON.stringify({
+          token: token,
+          username: username,
+        }),
+      });
+
+      if (response.success) {
+        showAlert("Подключение к GitHub успешно!", "success");
+      } else {
+        showAlert("Ошибка подключения: " + response.error, "danger");
+      }
     } catch (error) {
-        console.error('Error testing GitHub connection:', error);
-        showAlert('Ошибка проверки подключения', 'danger');
+      console.error("Error testing GitHub connection:", error);
+      showAlert("Ошибка проверки подключения", "danger");
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// Load GitHub settings
-async function loadGitHubSettings() {
+  // Load GitHub settings
+  async function loadGitHubSettings() {
     try {
-        const response = await apiRequest('/api/github/settings');
-        
-        if (response.success && response.settings) {
-            if (response.settings.username) {
-                document.getElementById('githubUsername').value = response.settings.username;
-            }
-            // Don't load the token for security reasons
+      const response = await apiRequest("/api/github/settings");
+
+      if (response.success && response.settings) {
+        if (response.settings.username) {
+          document.getElementById("githubUsername").value =
+            response.settings.username;
         }
-        
+        // Don't load the token for security reasons
+      }
     } catch (error) {
-        console.error('Error loading GitHub settings:', error);
+      console.error("Error loading GitHub settings:", error);
     }
-}
+  }
 
-// Check GitHub status
-async function checkGitHubStatus() {
+  // Check GitHub status
+  async function checkGitHubStatus() {
     try {
-        showLoading('Проверка статуса GitHub...');
-        
-        const response = await apiRequest('/api/github/status');
-        
-        const statusDiv = document.getElementById('githubStatus');
-        
-        if (response.success && response.configured) {
-            const connection = response.connection;
-            const repository = response.repository;
-            
-            statusDiv.innerHTML = `
+      showLoading("Проверка статуса GitHub...");
+
+      const response = await apiRequest("/api/github/status");
+
+      const statusDiv = document.getElementById("githubStatus");
+
+      if (response.success && response.configured) {
+        const connection = response.connection;
+        const repository = response.repository;
+
+        statusDiv.innerHTML = `
                 <div class="row">
                     <div class="col-md-6">
                         <div class="d-flex align-items-center mb-2">
                             <i class="fas fa-check-circle text-success me-2"></i>
                             <strong>Подключение активно</strong>
                         </div>
-                        <small class="text-muted">Пользователь: ${connection.user || 'N/A'}</small>
+                        <small class="text-muted">Пользователь: ${
+                          connection.user || "N/A"
+                        }</small>
                     </div>
                     <div class="col-md-6">
                         <div class="d-flex align-items-center mb-2">
                             <i class="fas fa-code-branch text-info me-2"></i>
                             <strong>Репозиторий</strong>
                         </div>
-                        <small class="text-muted">${repository.name || 'Не настроен'}</small>
+                        <small class="text-muted">${
+                          repository.name || "Не настроен"
+                        }</small>
                     </div>
                 </div>
             `;
-            
-            // Show repository link if available
-            if (repository.url) {
-                document.getElementById('openRepoBtn').style.display = 'block';
-                document.getElementById('openRepoBtn').onclick = () => window.open(repository.url, '_blank');
-            }
-        } else {
-            statusDiv.innerHTML = `
+
+        // Show repository link if available
+        if (repository.url) {
+          document.getElementById("openRepoBtn").style.display = "block";
+          document.getElementById("openRepoBtn").onclick = () =>
+            window.open(repository.url, "_blank");
+        }
+      } else {
+        statusDiv.innerHTML = `
                 <div class="d-flex align-items-center">
                     <i class="fas fa-exclamation-triangle text-warning me-2"></i>
-                    <span>${response.message || 'GitHub интеграция не настроена'}</span>
+                    <span>${
+                      response.message || "GitHub интеграция не настроена"
+                    }</span>
                 </div>
                 <small class="text-muted mt-2 d-block">
                     Проверьте настройки GitHub в файле конфигурации
                 </small>
             `;
-        }
-        
-        // Load backups list if GitHub is configured
-        if (response.success && response.configured) {
-            loadBackupsList();
-        }
-        
+      }
+
+      // Load backups list if GitHub is configured
+      if (response.success && response.configured) {
+        loadBackupsList();
+      }
     } catch (error) {
-        console.error('Error checking GitHub status:', error);
-        document.getElementById('githubStatus').innerHTML = `
+      console.error("Error checking GitHub status:", error);
+      document.getElementById("githubStatus").innerHTML = `
             <div class="d-flex align-items-center">
                 <i class="fas fa-times-circle text-danger me-2"></i>
                 <span>Ошибка проверки статуса</span>
             </div>
         `;
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// Create backup
-async function createBackup() {
+  // Create backup
+  async function createBackup() {
     try {
-        const backupName = document.getElementById('backupName').value.trim();
-        const includeSettings = document.getElementById('includeSettings').checked;
-        const includeFiles = document.getElementById('includeFiles').checked;
-        
-        if (!includeSettings && !includeFiles) {
-            showAlert('Выберите хотя бы один тип данных для резервного копирования', 'warning');
-            return;
-        }
-        
-        showLoading('Создание резервной копии...');
-        
-        const response = await apiRequest('/api/github/backup', {
-            method: 'POST',
-            body: JSON.stringify({
-                backup_name: backupName,
-                include_settings: includeSettings,
-                include_files: includeFiles
-            })
-        });
-        
-        if (response.success) {
-            showAlert('Резервная копия успешно создана', 'success');
-            document.getElementById('backupName').value = '';
-            loadBackupsList();
-        } else {
-            showAlert('Ошибка создания резервной копии: ' + response.error, 'danger');
-        }
-        
+      const backupName = document.getElementById("backupName").value.trim();
+      const includeSettings =
+        document.getElementById("includeSettings").checked;
+      const includeFiles = document.getElementById("includeFiles").checked;
+
+      if (!includeSettings && !includeFiles) {
+        showAlert(
+          "Выберите хотя бы один тип данных для резервного копирования",
+          "warning"
+        );
+        return;
+      }
+
+      showLoading("Создание резервной копии...");
+
+      const response = await apiRequest("/api/github/backup", {
+        method: "POST",
+        body: JSON.stringify({
+          backup_name: backupName,
+          include_settings: includeSettings,
+          include_files: includeFiles,
+        }),
+      });
+
+      if (response.success) {
+        showAlert("Резервная копия успешно создана", "success");
+        document.getElementById("backupName").value = "";
+        loadBackupsList();
+      } else {
+        showAlert(
+          "Ошибка создания резервной копии: " + response.error,
+          "danger"
+        );
+      }
     } catch (error) {
-        console.error('Error creating backup:', error);
-        showAlert('Ошибка создания резервной копии', 'danger');
+      console.error("Error creating backup:", error);
+      showAlert("Ошибка создания резервной копии", "danger");
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// Sync with GitHub
-async function syncWithGitHub() {
+  // Sync with GitHub
+  async function syncWithGitHub() {
     try {
-        showLoading('Синхронизация с GitHub...');
-        
-        const response = await apiRequest('/api/github/sync', {
-            method: 'POST'
-        });
-        
-        if (response.success) {
-            showAlert('Синхронизация выполнена успешно', 'success');
-            loadBackupsList();
-        } else {
-            showAlert('Ошибка синхронизации: ' + response.error, 'danger');
-        }
-        
+      showLoading("Синхронизация с GitHub...");
+
+      const response = await apiRequest("/api/github/sync", {
+        method: "POST",
+      });
+
+      if (response.success) {
+        showAlert("Синхронизация выполнена успешно", "success");
+        loadBackupsList();
+      } else {
+        showAlert("Ошибка синхронизации: " + response.error, "danger");
+      }
     } catch (error) {
-        console.error('Error syncing with GitHub:', error);
-        showAlert('Ошибка синхронизации', 'danger');
+      console.error("Error syncing with GitHub:", error);
+      showAlert("Ошибка синхронизации", "danger");
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// Load backups list
-async function loadBackupsList() {
+  // Load backups list
+  async function loadBackupsList() {
     try {
-        const response = await apiRequest('/api/github/backups');
-        
-        const backupsDiv = document.getElementById('backupsList');
-        
-        if (response.success && response.backups && response.backups.length > 0) {
-            const backupsHtml = response.backups.map(backup => `
+      const response = await apiRequest("/api/github/backups");
+
+      const backupsDiv = document.getElementById("backupsList");
+
+      if (response.success && response.backups && response.backups.length > 0) {
+        const backupsHtml = response.backups
+          .map(
+            (backup) => `
                 <div class="border-bottom p-3">
                     <div class="d-flex justify-content-between align-items-start">
                         <div>
                             <h6 class="mb-1">${backup.name}</h6>
                             <small class="text-muted">
                                 <i class="fas fa-calendar me-1"></i>
-                                ${new Date(backup.created_at).toLocaleString('ru-RU')}
+                                ${new Date(backup.created_at).toLocaleString(
+                                  "ru-RU"
+                                )}
                             </small>
                         </div>
                         <div class="dropdown">
@@ -1226,79 +1644,92 @@ async function loadBackupsList() {
                                 <i class="fas fa-ellipsis-v"></i>
                             </button>
                             <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="${backup.download_url}" target="_blank">
+                                <li><a class="dropdown-item" href="${
+                                  backup.download_url
+                                }" target="_blank">
                                     <i class="fas fa-download me-2"></i>Скачать
                                 </a></li>
-                                <li><a class="dropdown-item" href="${backup.view_url}" target="_blank">
+                                <li><a class="dropdown-item" href="${
+                                  backup.view_url
+                                }" target="_blank">
                                     <i class="fas fa-eye me-2"></i>Просмотр
                                 </a></li>
                             </ul>
                         </div>
                     </div>
-                    ${backup.description ? `<p class="mb-0 mt-2 small text-muted">${backup.description}</p>` : ''}
+                    ${
+                      backup.description
+                        ? `<p class="mb-0 mt-2 small text-muted">${backup.description}</p>`
+                        : ""
+                    }
                 </div>
-            `).join('');
-            
-            backupsDiv.innerHTML = backupsHtml;
-        } else {
-            backupsDiv.innerHTML = `
+            `
+          )
+          .join("");
+
+        backupsDiv.innerHTML = backupsHtml;
+      } else {
+        backupsDiv.innerHTML = `
                 <div class="p-3 text-center text-muted">
                     <i class="fas fa-cloud me-2"></i>
-                    ${response.success ? 'Резервные копии не найдены' : 'Ошибка загрузки списка'}
+                    ${
+                      response.success
+                        ? "Резервные копии не найдены"
+                        : "Ошибка загрузки списка"
+                    }
                 </div>
             `;
-        }
-        
+      }
     } catch (error) {
-        console.error('Error loading backups list:', error);
-        document.getElementById('backupsList').innerHTML = `
+      console.error("Error loading backups list:", error);
+      document.getElementById("backupsList").innerHTML = `
             <div class="p-3 text-center text-muted">
                 <i class="fas fa-exclamation-triangle me-2"></i>
                 Ошибка загрузки
             </div>
         `;
     }
-}
+  }
 
-// Create repository
-async function createRepository() {
+  // Create repository
+  async function createRepository() {
     try {
-        const description = document.getElementById('repoDescription').value.trim() || 'DevDataSorter backup repository';
-        
-        showLoading('Создание репозитория...');
-        
-        const response = await apiRequest('/api/github/repository', {
-            method: 'POST',
-            body: JSON.stringify({
-                description: description
-            })
-        });
-        
-        if (response.success) {
-            showAlert('Репозиторий успешно создан', 'success');
-            checkGitHubStatus(); // Refresh status
-        } else {
-            showAlert('Ошибка создания репозитория: ' + response.error, 'danger');
-        }
-        
+      const description =
+        document.getElementById("repoDescription").value.trim() ||
+        "DevDataSorter backup repository";
+
+      showLoading("Создание репозитория...");
+
+      const response = await apiRequest("/api/github/repository", {
+        method: "POST",
+        body: JSON.stringify({
+          description: description,
+        }),
+      });
+
+      if (response.success) {
+        showAlert("Репозиторий успешно создан", "success");
+        checkGitHubStatus(); // Refresh status
+      } else {
+        showAlert("Ошибка создания репозитория: " + response.error, "danger");
+      }
     } catch (error) {
-        console.error('Error creating repository:', error);
-        showAlert('Ошибка создания репозитория', 'danger');
+      console.error("Error creating repository:", error);
+      showAlert("Ошибка создания репозитория", "danger");
     } finally {
-        hideLoading();
+      hideLoading();
     }
-}
+  }
 
-// Initialize GitHub tab when it's shown
-document.addEventListener('DOMContentLoaded', function() {
-    const githubTab = document.getElementById('github-tab');
+  // Initialize GitHub tab when it's shown
+  document.addEventListener("DOMContentLoaded", function () {
+    const githubTab = document.getElementById("github-tab");
     if (githubTab) {
-        githubTab.addEventListener('shown.bs.tab', function() {
-            loadGitHubSettings();
-            checkGitHubStatus();
-        });
+      githubTab.addEventListener("shown.bs.tab", function () {
+        loadGitHubSettings();
+        checkGitHubStatus();
+      });
     }
-});
-
+  });
 </script>
 {% endblock %}
