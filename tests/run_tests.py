@@ -1,6 +1,7 @@
 import unittest
 import sys
 import os
+import unittest
 
 # Добавляем родительскую директорию в путь для импорта
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
