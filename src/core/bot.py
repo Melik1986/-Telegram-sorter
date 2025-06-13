@@ -27,7 +27,7 @@ class DevDataSorterBot:
     def __init__(self, token: str = None):
         self.token = token or TELEGRAM_BOT_TOKEN
         self.ai_config = get_ai_config()
-        self.storage = ResourceStorage()
+        self.storage = ResourceStorage(enable_semantic_search=True)
         self.classifier = ContentClassifier()
         self.rate_limiter = RateLimiter()
         self.i18n = I18nManager()
@@ -48,6 +48,8 @@ class DevDataSorterBot:
         self.app.add_handler(CommandHandler("help", self.help_command))
         self.app.add_handler(CommandHandler("list", self.list_command))
         self.app.add_handler(CommandHandler("search", self.search_command))
+        self.app.add_handler(CommandHandler("semantic_search", self.semantic_search_command))
+        self.app.add_handler(CommandHandler("filter", self.filter_command))
         self.app.add_handler(CommandHandler("stats", self.stats_command))
         self.app.add_handler(CommandHandler("export", self.export_command))
         self.app.add_handler(CommandHandler("settings", self.settings_command))
@@ -107,9 +109,16 @@ class DevDataSorterBot:
             if command_type == CommandType.SEARCH:
                 query = parameters.get('query', '')
                 if query:
-                    await self._execute_search_command(update, context, query, language)
+                    await self._execute_search_command(update, context, query, language, parameters)
                 else:
                     await self._send_search_help(update, language)
+            
+            elif command_type == CommandType.SEMANTIC_SEARCH:
+                query = parameters.get('query', '')
+                if query:
+                    await self._execute_semantic_search_command(update, context, query, language, parameters)
+                else:
+                    await self._send_semantic_search_help(update, language)
             
             elif command_type == CommandType.CREATE_FOLDER:
                 folder_name = parameters.get('name', '')
@@ -161,21 +170,79 @@ class DevDataSorterBot:
             await update.message.reply_text(error_msg)
     
     # Command execution methods
-    async def _execute_search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: str, language: str):
-        """Execute search command."""
+    async def _execute_search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: str, language: str, parameters: dict = None):
+        """Execute search command with optional filters."""
         try:
-            results = await self.storage.search_resources(query)
+            # Use parameters from command interpreter if available
+            if parameters:
+                final_query = parameters.get('query', query)
+                category_filter = parameters.get('category')
+                date_from = parameters.get('date_from')
+                date_to = parameters.get('date_to')
+                time_period = parameters.get('time_period')
+                
+                # Handle time period shortcuts
+                if time_period and not (date_from or date_to):
+                    from datetime import datetime, timedelta
+                    now = datetime.now()
+                    
+                    if time_period == 'today':
+                        date_from = now.strftime('%Y-%m-%d')
+                        date_to = now.strftime('%Y-%m-%d')
+                    elif time_period == 'week':
+                        date_from = (now - timedelta(days=7)).strftime('%Y-%m-%d')
+                        date_to = now.strftime('%Y-%m-%d')
+                    elif time_period == 'month':
+                        date_from = (now - timedelta(days=30)).strftime('%Y-%m-%d')
+                        date_to = now.strftime('%Y-%m-%d')
+                    elif time_period == 'year':
+                        date_from = (now - timedelta(days=365)).strftime('%Y-%m-%d')
+                        date_to = now.strftime('%Y-%m-%d')
+            else:
+                # Fallback to old parsing method
+                parts = query.split()
+                search_query = []
+                category_filter = None
+                date_from = None
+                date_to = None
+                
+                for part in parts:
+                    if part.startswith('category:'):
+                        category_filter = part.split(':', 1)[1]
+                    elif part.startswith('date_from:'):
+                        date_from = part.split(':', 1)[1]
+                    elif part.startswith('date_to:'):
+                        date_to = part.split(':', 1)[1]
+                    else:
+                        search_query.append(part)
+                
+                final_query = ' '.join(search_query)
+            
+            if not final_query:
+                if language == 'ru':
+                    help_msg = "🔍 Использование: найди <запрос> [в категории <категория>] [за <период>]\nПример: 'найди React туториалы за последний месяц'"
+                else:
+                    help_msg = "🔍 Usage: find <query> [in category <category>] [for <period>]\nExample: 'find React tutorials for last month'"
+                await update.message.reply_text(help_msg)
+                return
+            
+            results = self.storage.search_resources(
+                final_query,
+                category_filter=category_filter,
+                date_from=date_from,
+                date_to=date_to
+            )
             
             if not results:
                 if language == 'ru':
-                    response = f"🔍 По запросу '{query}' ничего не найдено"
+                    response = f"🔍 По запросу '{final_query}' ничего не найдено"
                 else:
-                    response = f"🔍 No results found for '{query}'"
+                    response = f"🔍 No results found for '{final_query}'"
             else:
                 if language == 'ru':
-                    response = f"🔍 Найдено {len(results)} результатов по запросу '{query}':\n\n"
+                    response = f"🔍 Найдено {len(results)} результатов по запросу '{final_query}':\n\n"
                 else:
-                    response = f"🔍 Found {len(results)} results for '{query}':\n\n"
+                    response = f"🔍 Found {len(results)} results for '{final_query}':\n\n"
                 
                 for i, result in enumerate(results[:10], 1):
                     response += f"{i}. {result.get('title', 'Untitled')}\n"
@@ -189,6 +256,106 @@ class DevDataSorterBot:
         except Exception as e:
             logger.error(f"Search command error: {e}")
             error_msg = "❌ Ошибка поиска" if language == 'ru' else "❌ Search error"
+            await update.message.reply_text(error_msg)
+    
+    async def _execute_semantic_search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, query: str, language: str, parameters: dict = None):
+        """Execute semantic search command."""
+        try:
+            # Check if semantic search is available
+            if not hasattr(self.storage, 'semantic_search_engine') or self.storage.semantic_search_engine is None:
+                if language == 'ru':
+                    response = "🧠 Семантический поиск недоступен. Убедитесь, что установлены зависимости: sentence-transformers и faiss-cpu"
+                else:
+                    response = "🧠 Semantic search is not available. Make sure dependencies are installed: sentence-transformers and faiss-cpu"
+                await update.message.reply_text(response)
+                return
+            
+            # Extract filters from parameters if available
+            category_filter = None
+            date_from = None
+            date_to = None
+            time_period = None
+            
+            if parameters:
+                category_filter = parameters.get('category')
+                date_from = parameters.get('date_from')
+                date_to = parameters.get('date_to')
+                time_period = parameters.get('time_period')
+                
+                # Handle time period shortcuts
+                if time_period and not (date_from or date_to):
+                    from datetime import datetime, timedelta
+                    now = datetime.now()
+                    
+                    if time_period == 'today':
+                        date_from = now.strftime('%Y-%m-%d')
+                        date_to = now.strftime('%Y-%m-%d')
+                    elif time_period == 'week':
+                        date_from = (now - timedelta(days=7)).strftime('%Y-%m-%d')
+                        date_to = now.strftime('%Y-%m-%d')
+                    elif time_period == 'month':
+                        date_from = (now - timedelta(days=30)).strftime('%Y-%m-%d')
+                        date_to = now.strftime('%Y-%m-%d')
+                    elif time_period == 'year':
+                        date_from = (now - timedelta(days=365)).strftime('%Y-%m-%d')
+                        date_to = now.strftime('%Y-%m-%d')
+            
+            # Check if storage supports filtered semantic search
+            if hasattr(self.storage, 'semantic_search_resources_filtered'):
+                results = await self.storage.semantic_search_resources_filtered(
+                    query, 
+                    limit=10,
+                    category_filter=category_filter,
+                    date_from=date_from,
+                    date_to=date_to
+                )
+            else:
+                results = await self.storage.semantic_search_resources(query, limit=10)
+            
+            if not results:
+                if language == 'ru':
+                    response = f"🧠 По семантическому запросу '{query}' ничего не найдено"
+                    if category_filter:
+                        response += f" в категории '{category_filter}'"
+                    if time_period:
+                        response += f" за {time_period}"
+                else:
+                    response = f"🧠 No semantic results found for '{query}'"
+                    if category_filter:
+                        response += f" in category '{category_filter}'"
+                    if time_period:
+                        response += f" for {time_period}"
+            else:
+                if language == 'ru':
+                    response = f"🧠 Найдено {len(results)} семантических результатов по запросу '{query}'"
+                    if category_filter:
+                        response += f" в категории '{category_filter}'"
+                    if time_period:
+                        response += f" за {time_period}"
+                    response += ":\n\n"
+                else:
+                    response = f"🧠 Found {len(results)} semantic results for '{query}'"
+                    if category_filter:
+                        response += f" in category '{category_filter}'"
+                    if time_period:
+                        response += f" for {time_period}"
+                    response += ":\n\n"
+                
+                for i, result in enumerate(results, 1):
+                    resource = result.get('resource', {})
+                    score = result.get('score', 0.0)
+                    response += f"{i}. {resource.get('title', 'Untitled')}\n"
+                    response += f"   📁 {resource.get('category', 'Unknown')}\n"
+                    response += f"   🎯 Релевантность: {score:.2f}\n"
+                    if resource.get('description'):
+                        response += f"   📝 {resource['description'][:100]}...\n"
+                    response += "\n"
+            
+            await update.message.reply_text(response)
+            
+        except Exception as e:
+            logger.error(f"Semantic search command error: {e}")
+            error_msg = "❌ Ошибка семантического поиска" if language == 'ru' else "❌ Semantic search error"
             await update.message.reply_text(error_msg)
     
     async def _execute_create_folder_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, folder_name: str, language: str):
@@ -255,6 +422,7 @@ class DevDataSorterBot:
             response = """🤖 Помощь по командам:
 
 🔍 Поиск: "найди код Python" или "поиск по React"
+🧠 Семантический поиск: "семантический поиск алгоритмы" или "умный поиск машинное обучение"
 📁 Создание папки: "создай папку для проектов"
 📦 Создание архива: "создай архив старых файлов"
 📋 Список: "покажи все ресурсы" или "список кода"
@@ -268,6 +436,7 @@ class DevDataSorterBot:
             response = """🤖 Command Help:
 
 🔍 Search: "find Python code" or "search React"
+🧠 Semantic search: "semantic search algorithms" or "smart search machine learning"
 📁 Create folder: "create folder for projects"
 📦 Create archive: "create archive for old files"
 📋 List: "show all resources" or "list code"
@@ -346,11 +515,18 @@ Just write commands in natural language!"""
     async def _execute_delete_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, item_id: str, language: str):
         """Execute delete command."""
         try:
-            # Delete logic here
-            if language == 'ru':
-                response = f"🗑️ Ресурс {item_id} удален"
+            success = self.storage.delete_resource(item_id)
+            
+            if success:
+                if language == 'ru':
+                    response = f"🗑️ Ресурс {item_id} успешно удален"
+                else:
+                    response = f"🗑️ Resource {item_id} deleted successfully"
             else:
-                response = f"🗑️ Resource {item_id} deleted"
+                if language == 'ru':
+                    response = f"❌ Ресурс {item_id} не найден"
+                else:
+                    response = f"❌ Resource {item_id} not found"
             
             await update.message.reply_text(response)
             
@@ -366,6 +542,14 @@ Just write commands in natural language!"""
             response = "🔍 Укажите что искать. Например: 'найди код на Python'"
         else:
             response = "🔍 Please specify what to search for. Example: 'find Python code'"
+        await update.message.reply_text(response)
+    
+    async def _send_semantic_search_help(self, update: Update, language: str):
+        """Send semantic search help message."""
+        if language == 'ru':
+            response = "🧠 Укажите запрос для семантического поиска. Например: 'семантический поиск алгоритмы сортировки'"
+        else:
+            response = "🧠 Please specify query for semantic search. Example: 'semantic search sorting algorithms'"
         await update.message.reply_text(response)
     
     async def _send_folder_help(self, update: Update, language: str):
@@ -391,6 +575,140 @@ Just write commands in natural language!"""
         else:
             response = "🗑️ Please specify resource ID to delete. Example: 'delete resource 123'"
         await update.message.reply_text(response)
+    
+    async def semantic_search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /semantic_search command."""
+        try:
+            query = ' '.join(context.args) if context.args else ''
+            
+            if not query:
+                await update.message.reply_text(
+                    "🧠 Укажите запрос для семантического поиска.\n"
+                    "Пример: /semantic_search алгоритмы сортировки\n\n"
+                    "🧠 Please specify a query for semantic search.\n"
+                    "Example: /semantic_search sorting algorithms"
+                )
+                return
+            
+            # Check if semantic search is available
+            if not hasattr(self.storage, 'semantic_search_engine') or self.storage.semantic_search_engine is None:
+                await update.message.reply_text(
+                    "🧠 Семантический поиск недоступен. Убедитесь, что установлены зависимости: sentence-transformers и faiss-cpu\n\n"
+                    "🧠 Semantic search is not available. Make sure dependencies are installed: sentence-transformers and faiss-cpu"
+                )
+                return
+            
+            # Show processing message
+            status_msg = await update.message.reply_text("🧠 Выполняю семантический поиск... / Performing semantic search...")
+            
+            results = await self.storage.semantic_search_resources(query, limit=10)
+            
+            if not results:
+                response = f"🧠 По семантическому запросу '{query}' ничего не найдено\n\n🧠 No semantic results found for '{query}'"
+            else:
+                response = f"🧠 Найдено {len(results)} семантических результатов по запросу '{query}': / Found {len(results)} semantic results for '{query}':\n\n"
+                
+                for i, result in enumerate(results, 1):
+                    resource = result.get('resource', {})
+                    score = result.get('score', 0.0)
+                    response += f"{i}. {resource.get('title', 'Untitled')}\n"
+                    response += f"   📁 {resource.get('category', 'Unknown')}\n"
+                    response += f"   🎯 Релевантность / Relevance: {score:.2f}\n"
+                    if resource.get('description'):
+                        response += f"   📝 {resource['description'][:100]}...\n"
+                    response += "\n"
+            
+            # Delete status message and send results
+            try:
+                await status_msg.delete()
+            except:
+                pass
+            
+            await update.message.reply_text(response)
+            
+        except Exception as e:
+            logger.error(f"Semantic search command error: {e}")
+            await update.message.reply_text(
+                "❌ Ошибка семантического поиска / Semantic search error"
+            )
+    
+    async def filter_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /filter command for filtering resources."""
+        try:
+            if not context.args:
+                await update.message.reply_text(
+                    "🔧 Фильтрация ресурсов:\n"
+                    "Использование: /filter category:<категория> [date_from:YYYY-MM-DD] [date_to:YYYY-MM-DD]\n\n"
+                    "Примеры:\n"
+                    "• /filter category:code\n"
+                    "• /filter date_from:2024-01-01\n"
+                    "• /filter category:docs date_from:2024-01-01 date_to:2024-12-31\n\n"
+                    "🔧 Resource filtering:\n"
+                    "Usage: /filter category:<category> [date_from:YYYY-MM-DD] [date_to:YYYY-MM-DD]\n\n"
+                    "Examples:\n"
+                    "• /filter category:code\n"
+                    "• /filter date_from:2024-01-01\n"
+                    "• /filter category:docs date_from:2024-01-01 date_to:2024-12-31"
+                )
+                return
+            
+            # Parse filter parameters
+            category_filter = None
+            date_from = None
+            date_to = None
+            
+            for arg in context.args:
+                if arg.startswith('category:'):
+                    category_filter = arg.split(':', 1)[1]
+                elif arg.startswith('date_from:'):
+                    date_from = arg.split(':', 1)[1]
+                elif arg.startswith('date_to:'):
+                    date_to = arg.split(':', 1)[1]
+            
+            if not any([category_filter, date_from, date_to]):
+                await update.message.reply_text(
+                    "❌ Укажите хотя бы один фильтр\n\n"
+                    "❌ Please specify at least one filter"
+                )
+                return
+            
+            # Get all resources and apply filters
+            all_resources = self.storage.get_all_resources()
+            filtered_resources = self.storage._apply_filters(
+                all_resources,
+                category_filter=category_filter,
+                date_from=date_from,
+                date_to=date_to
+            )
+            
+            if not filtered_resources:
+                await update.message.reply_text(
+                    "🔧 По указанным фильтрам ничего не найдено\n\n"
+                    "🔧 No resources found with specified filters"
+                )
+            else:
+                response = f"🔧 Найдено {len(filtered_resources)} ресурсов:\n\n"
+                response += f"🔧 Found {len(filtered_resources)} resources:\n\n"
+                
+                for i, resource in enumerate(filtered_resources[:10], 1):
+                    response += f"{i}. {resource.get('title', 'Untitled')}\n"
+                    response += f"   📁 {resource.get('category', 'Unknown')}\n"
+                    if resource.get('description'):
+                        response += f"   📝 {resource['description'][:100]}...\n"
+                    response += "\n"
+                
+                if len(filtered_resources) > 10:
+                    response += f"... и еще {len(filtered_resources) - 10} ресурсов\n"
+                    response += f"... and {len(filtered_resources) - 10} more resources"
+                
+                await update.message.reply_text(response)
+                
+        except Exception as e:
+            logger.error(f"Filter command error: {e}")
+            await update.message.reply_text(
+                "❌ Ошибка фильтрации\n\n"
+                "❌ Filter error"
+            )
     
     # Other existing methods would go here...
     # (start_command, help_command, etc.)

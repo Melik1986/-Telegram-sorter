@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 class CommandType(Enum):
     """Types of commands that can be recognized."""
     SEARCH = "search"
+    SEMANTIC_SEARCH = "semantic_search"
     CREATE_FOLDER = "create_folder"
     CREATE_ARCHIVE = "create_archive"
     LIST = "list"
@@ -48,7 +49,7 @@ class NaturalLanguageCommandInterpreter:
     def _init_patterns(self):
         """Initialize enhanced command patterns for different languages."""
         self.command_patterns = {
-            # Enhanced Search patterns with more variations
+            # Enhanced Search patterns with more variations and time filters
             CommandType.SEARCH: {
                 'ru': [
                     r'(найди|найти|поиск|ищи|искать|покажи|показать|отыщи|разыщи)\s+(.+)',
@@ -69,6 +70,12 @@ class NaturalLanguageCommandInterpreter:
                     r'требуется\s+(.+)',
                     r'интересует\s+(.+)',
                     r'хотел\s+бы\s+(найти|посмотреть)\s+(.+)',
+                    # Complex queries with time filters
+                    r'(найди|покажи)\s+(все\s+)*(.+?)\s+(за\s+)*(последний|последние|последнюю)\s+(день|неделю|месяц|год|дни|недели|месяцы|года)',
+                    r'(найди|покажи)\s+(все\s+)*(.+?)\s+(с\s+)*(начала\s+)*(недели|месяца|года)',
+                    r'(найди|покажи)\s+(все\s+)*(.+?)\s+(старше|новее)\s+(\d+)\s+(дней|недель|месяцев|лет)',
+                    r'(найди|покажи)\s+(все\s+)*(.+?)\s+(до|после)\s+([\d\.\-\/]+)',
+                    r'(найди|покажи)\s+(все\s+)*(.+?)\s+(категории|типа)\s+(.+)',
                 ],
                 'en': [
                     r'(find|search|look|show|get|locate)\s+(.+)',
@@ -78,6 +85,37 @@ class NaturalLanguageCommandInterpreter:
                     r'show\s+me\s+(.+)',
                     r'can\s+you\s+(find|show)\s+(.+)\?*',
                     r'looking\s+for\s+(.+)',
+                    # Complex queries with time filters
+                    r'(find|show)\s+(all\s+)*(.+?)\s+(from\s+)*(last|past)\s+(day|week|month|year|days|weeks|months|years)',
+                    r'(find|show)\s+(all\s+)*(.+?)\s+(since\s+)*(beginning\s+of\s+)*(week|month|year)',
+                    r'(find|show)\s+(all\s+)*(.+?)\s+(older|newer)\s+than\s+(\d+)\s+(days|weeks|months|years)',
+                    r'(find|show)\s+(all\s+)*(.+?)\s+(before|after)\s+([\d\.\-\/]+)',
+                    r'(find|show)\s+(all\s+)*(.+?)\s+(of\s+type|category)\s+(.+)',
+                ]
+            },
+            
+            # Semantic search patterns
+            CommandType.SEMANTIC_SEARCH: {
+                'ru': [
+                    r'семантический\s+поиск\s+(.+)',
+                    r'умный\s+поиск\s+(.+)',
+                    r'найди\s+похожее\s+на\s+(.+)',
+                    r'поиск\s+по\s+смыслу\s+(.+)',
+                    r'ищи\s+семантически\s+(.+)',
+                    r'найди\s+по\s+значению\s+(.+)',
+                    r'интеллектуальный\s+поиск\s+(.+)',
+                    r'смысловой\s+поиск\s+(.+)',
+                    r'найди\s+связанное\s+с\s+(.+)',
+                    r'поиск\s+по\s+контексту\s+(.+)',
+                ],
+                'en': [
+                    r'semantic\s+search\s+(.+)',
+                    r'smart\s+search\s+(.+)',
+                    r'find\s+similar\s+to\s+(.+)',
+                    r'search\s+by\s+meaning\s+(.+)',
+                    r'intelligent\s+search\s+(.+)',
+                    r'contextual\s+search\s+(.+)',
+                    r'find\s+related\s+to\s+(.+)',
                 ]
             },
             
@@ -491,12 +529,34 @@ Return result ONLY in JSON format:
         if len(match.groups()) > 0:
             param_text = match.group(-1).strip()  # Last group is usually the parameter
             
-            if command_type in [CommandType.SEARCH, CommandType.ANALYZE]:
-                parameters['query'] = param_text
-                # Try to detect category from context
-                category = self._detect_category_from_text(text, language)
-                if category:
-                    parameters['category'] = category
+            if command_type in [CommandType.SEARCH, CommandType.SEMANTIC_SEARCH, CommandType.ANALYZE]:
+                # Extract time filters and categories from complex queries
+                time_params = self._extract_time_filters(text, language)
+                category_params = self._extract_category_filters(text, language)
+                
+                # For complex queries, extract the main search term
+                if len(match.groups()) >= 3:
+                    # Complex query pattern matched
+                    main_query = match.group(3).strip() if match.group(3) else param_text
+                    parameters['query'] = main_query
+                else:
+                    parameters['query'] = param_text
+                
+                # Add time filters if found
+                parameters.update(time_params)
+                
+                # Add category filters if found
+                parameters.update(category_params)
+                
+                # Try to detect category from context if not already found
+                if 'category' not in parameters:
+                    category = self._detect_category_from_text(text, language)
+                    if category:
+                        parameters['category'] = category
+                        
+                # For semantic search, add semantic flag
+                if command_type == CommandType.SEMANTIC_SEARCH:
+                    parameters['semantic'] = True
                     
             elif command_type in [CommandType.CREATE_FOLDER, CommandType.CREATE_ARCHIVE]:
                 parameters['name'] = param_text
@@ -555,6 +615,8 @@ Return result ONLY in JSON format:
                 try:
                     if command_name == 'search':
                         command_type = CommandType.SEARCH
+                    elif command_name == 'semantic_search':
+                        command_type = CommandType.SEMANTIC_SEARCH
                     elif command_name == 'create':
                         # Determine if folder or archive based on context
                         if any(word in text for word in synonyms.get('folder', [])):
@@ -589,13 +651,17 @@ Return result ONLY in JSON format:
             
             # Extract basic parameters
             parameters = {}
-            if command_type in [CommandType.SEARCH, CommandType.ANALYZE]:
+            if command_type in [CommandType.SEARCH, CommandType.SEMANTIC_SEARCH, CommandType.ANALYZE]:
                 # Try to extract query from remaining text
                 query_words = [word for word in text.split() 
                              if word not in synonyms.get('search', []) 
-                             and word not in synonyms.get('analyze', [])]
+                             and word not in synonyms.get('analyze', []) 
+                             and word not in synonyms.get('semantic_search', [])]
                 if query_words:
                     parameters['query'] = ' '.join(query_words)
+                # For semantic search, add semantic flag
+                if command_type == CommandType.SEMANTIC_SEARCH:
+                    parameters['semantic'] = True
             
             confidence = min(0.6 + (score * 0.1), 0.8)
             
@@ -663,7 +729,8 @@ Return result ONLY in JSON format:
         """Initialize synonym dictionaries for better understanding."""
         self.synonyms = {
             'ru': {
-                'search': ['найди', 'найти', 'поиск', 'ищи', 'искать', 'покажи', 'показать', 'отыщи', 'разыщи', 'поищи'],
+                'search': ['найди', 'найти', 'поиск', 'ищи', 'искать', 'покажи', 'показать', 'отыщи', 'разыщи', 'поищи', 'все', 'всё'],
+                'semantic_search': ['семантический', 'умный', 'похожее', 'смыслу', 'семантически', 'значению', 'интеллектуальный', 'смысловой', 'связанное', 'контексту'],
                 'create': ['создай', 'сделай', 'новая', 'новый', 'добавь', 'организуй', 'заведи'],
                 'folder': ['папку', 'папка', 'директорию', 'директория', 'каталог'],
                 'archive': ['архив', 'архивируй', 'заархивируй', 'упакуй', 'сожми'],
@@ -676,6 +743,7 @@ Return result ONLY in JSON format:
             },
             'en': {
                 'search': ['find', 'search', 'look', 'show', 'get', 'locate'],
+                'semantic_search': ['semantic', 'smart', 'similar', 'meaning', 'intelligent', 'contextual', 'related'],
                 'create': ['create', 'make', 'new', 'add'],
                 'folder': ['folder', 'directory'],
                 'archive': ['archive', 'compress'],
@@ -692,19 +760,139 @@ Return result ONLY in JSON format:
         """Initialize context words for better understanding."""
         self.context_words = {
             'ru': {
-                'programming': ['код', 'программа', 'скрипт', 'функция', 'класс', 'python', 'javascript', 'java'],
-                'documentation': ['документация', 'доки', 'руководство', 'инструкция', 'readme'],
-                'projects': ['проект', 'проекты', 'работа', 'задача', 'задачи'],
-                'files': ['файл', 'файлы', 'документ', 'документы'],
-                'data': ['данные', 'информация', 'контент', 'материал']
+                'programming': ['код', 'программа', 'скрипт', 'функция', 'класс', 'python', 'javascript', 'java', 'react', 'vue', 'angular', 'node', 'php', 'c++', 'c#', 'go', 'rust'],
+                'documentation': ['документация', 'доки', 'руководство', 'инструкция', 'readme', 'туториал', 'туториалы', 'гайд', 'гайды', 'мануал'],
+                'projects': ['проект', 'проекты', 'работа', 'задача', 'задачи', 'приложение', 'приложения', 'сайт', 'сайты'],
+                'files': ['файл', 'файлы', 'документ', 'документы', 'изображение', 'изображения', 'видео', 'аудио'],
+                'data': ['данные', 'информация', 'контент', 'материал', 'ресурс', 'ресурсы'],
+                'learning': ['обучение', 'изучение', 'курс', 'курсы', 'урок', 'уроки', 'лекция', 'лекции', 'практика'],
+                'tools': ['инструмент', 'инструменты', 'утилита', 'утилиты', 'библиотека', 'библиотеки', 'фреймворк', 'фреймворки']
             },
             'en': {
-                'programming': ['code', 'program', 'script', 'function', 'class', 'python', 'javascript', 'java'],
-                'documentation': ['docs', 'documentation', 'guide', 'manual', 'readme'],
-                'projects': ['project', 'projects', 'work', 'task', 'tasks'],
-                'files': ['file', 'files', 'document', 'documents'],
-                'data': ['data', 'information', 'content', 'material']
+                'programming': ['code', 'program', 'script', 'function', 'class', 'python', 'javascript', 'java', 'react', 'vue', 'angular', 'node', 'php', 'cpp', 'csharp', 'go', 'rust'],
+                'documentation': ['docs', 'documentation', 'guide', 'manual', 'readme', 'tutorial', 'tutorials', 'howto'],
+                'projects': ['project', 'projects', 'work', 'task', 'tasks', 'app', 'application', 'website', 'site'],
+                'files': ['file', 'files', 'document', 'documents', 'image', 'images', 'video', 'audio'],
+                'data': ['data', 'information', 'content', 'material', 'resource', 'resources'],
+                'learning': ['learning', 'study', 'course', 'courses', 'lesson', 'lessons', 'lecture', 'lectures', 'practice'],
+                'tools': ['tool', 'tools', 'utility', 'utilities', 'library', 'libraries', 'framework', 'frameworks']
             }
         }
         
-        # ... existing code ...
+    def _extract_time_filters(self, text: str, language: str) -> Dict[str, Any]:
+        """Extract time-based filters from text."""
+        time_params = {}
+        
+        if language == 'ru':
+            # Last period patterns
+            last_period_match = re.search(r'(последний|последние|последнюю)\s+(\d+\s+)*(день|дни|неделю|недели|месяц|месяцы|год|года)', text)
+            if last_period_match:
+                period = last_period_match.group(3)
+                number = last_period_match.group(2)
+                if number:
+                    number = int(re.search(r'\d+', number).group())
+                else:
+                    number = 1
+                    
+                if period in ['день', 'дни']:
+                    time_params['date_from'] = f'last_{number}_days'
+                elif period in ['неделю', 'недели']:
+                    time_params['date_from'] = f'last_{number}_weeks'
+                elif period in ['месяц', 'месяцы']:
+                    time_params['date_from'] = f'last_{number}_months'
+                elif period in ['год', 'года']:
+                    time_params['date_from'] = f'last_{number}_years'
+            
+            # Since beginning patterns
+            since_match = re.search(r'(с\s+)*(начала\s+)*(недели|месяца|года)', text)
+            if since_match:
+                period = since_match.group(3)
+                if period == 'недели':
+                    time_params['date_from'] = 'beginning_of_week'
+                elif period == 'месяца':
+                    time_params['date_from'] = 'beginning_of_month'
+                elif period == 'года':
+                    time_params['date_from'] = 'beginning_of_year'
+            
+            # Older/newer than patterns
+            age_match = re.search(r'(старше|новее)\s+(\d+)\s+(дней|недель|месяцев|лет)', text)
+            if age_match:
+                comparison = age_match.group(1)
+                number = int(age_match.group(2))
+                period = age_match.group(3)
+                
+                if comparison == 'старше':
+                    time_params['date_to'] = f'{number}_{period}_ago'
+                else:  # новее
+                    time_params['date_from'] = f'{number}_{period}_ago'
+            
+            # Specific date patterns
+            date_match = re.search(r'(до|после)\s+([\d\.\-\/]+)', text)
+            if date_match:
+                comparison = date_match.group(1)
+                date_str = date_match.group(2)
+                
+                if comparison == 'до':
+                    time_params['date_to'] = date_str
+                else:  # после
+                    time_params['date_from'] = date_str
+                    
+        else:  # English
+            # Last period patterns
+            last_period_match = re.search(r'(last|past)\s+(\d+\s+)*(day|days|week|weeks|month|months|year|years)', text)
+            if last_period_match:
+                period = last_period_match.group(3)
+                number = last_period_match.group(2)
+                if number:
+                    number = int(re.search(r'\d+', number).group())
+                else:
+                    number = 1
+                    
+                time_params['date_from'] = f'last_{number}_{period}'
+            
+            # Since beginning patterns
+            since_match = re.search(r'(since\s+)*(beginning\s+of\s+)*(week|month|year)', text)
+            if since_match:
+                period = since_match.group(3)
+                time_params['date_from'] = f'beginning_of_{period}'
+            
+            # Older/newer than patterns
+            age_match = re.search(r'(older|newer)\s+than\s+(\d+)\s+(days|weeks|months|years)', text)
+            if age_match:
+                comparison = age_match.group(1)
+                number = int(age_match.group(2))
+                period = age_match.group(3)
+                
+                if comparison == 'older':
+                    time_params['date_to'] = f'{number}_{period}_ago'
+                else:  # newer
+                    time_params['date_from'] = f'{number}_{period}_ago'
+            
+            # Specific date patterns
+            date_match = re.search(r'(before|after)\s+([\d\.\-\/]+)', text)
+            if date_match:
+                comparison = date_match.group(1)
+                date_str = date_match.group(2)
+                
+                if comparison == 'before':
+                    time_params['date_to'] = date_str
+                else:  # after
+                    time_params['date_from'] = date_str
+        
+        return time_params
+    
+    def _extract_category_filters(self, text: str, language: str) -> Dict[str, Any]:
+        """Extract category-based filters from text."""
+        category_params = {}
+        
+        if language == 'ru':
+            # Category patterns
+            category_match = re.search(r'(категории|типа)\s+(.+?)(?:\s+(за|с|до|после|старше|новее)|$)', text)
+            if category_match:
+                category_params['category'] = category_match.group(2).strip()
+        else:  # English
+            category_match = re.search(r'(of\s+type|category)\s+(.+?)(?:\s+(from|since|before|after|older|newer)|$)', text)
+            if category_match:
+                category_params['category'] = category_match.group(2).strip()
+        
+        return category_params

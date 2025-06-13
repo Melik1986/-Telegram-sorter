@@ -1,0 +1,883 @@
+{% extends "base.html" %}
+
+{% block title %}Файлы - DevDataSorter{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">
+                    <i class="fas fa-folder-open me-2 text-primary"></i>
+                    Файловый менеджер
+                </h2>
+                <p class="text-muted mb-0">Просмотр и управление файлами</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-primary" onclick="refreshFiles()">
+                    <i class="fas fa-sync-alt me-2"></i>
+                    Обновить
+                </button>
+                <button class="btn btn-primary" onclick="uploadFiles()">
+                    <i class="fas fa-upload me-2"></i>
+                    Загрузить
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toolbar -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <!-- Breadcrumb -->
+                        <nav aria-label="breadcrumb">
+                            <ol class="breadcrumb mb-0" id="breadcrumb">
+                                <li class="breadcrumb-item">
+                                    <a href="#" onclick="navigateToPath('/')">
+                                        <i class="fas fa-home"></i>
+                                    </a>
+                                </li>
+                            </ol>
+                        </nav>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <!-- View Mode -->
+                            <div class="btn-group" role="group">
+                                <input type="radio" class="btn-check" name="viewMode" id="listView" checked>
+                                <label class="btn btn-outline-secondary btn-sm" for="listView">
+                                    <i class="fas fa-list"></i>
+                                </label>
+                                <input type="radio" class="btn-check" name="viewMode" id="gridView">
+                                <label class="btn btn-outline-secondary btn-sm" for="gridView">
+                                    <i class="fas fa-th"></i>
+                                </label>
+                            </div>
+                            
+                            <!-- Sort Options -->
+                            <select class="form-select form-select-sm" id="sortBy" style="width: auto;">
+                                <option value="name">По имени</option>
+                                <option value="size">По размеру</option>
+                                <option value="date">По дате</option>
+                                <option value="type">По типу</option>
+                            </select>
+                            
+                            <!-- Filter -->
+                            <input type="text" class="form-control form-control-sm" id="fileFilter" placeholder="Фильтр..." style="width: 150px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- File Browser -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body p-0">
+                <!-- List View -->
+                <div id="listViewContainer">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="filesTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th width="5%">
+                                        <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                                    </th>
+                                    <th width="5%"></th>
+                                    <th width="40%">Имя</th>
+                                    <th width="15%">Размер</th>
+                                    <th width="15%">Тип</th>
+                                    <th width="15%">Изменен</th>
+                                    <th width="5%">Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody id="filesTableBody">
+                                <!-- Files will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <!-- Grid View -->
+                <div id="gridViewContainer" style="display: none;">
+                    <div class="p-3">
+                        <div class="row" id="filesGrid">
+                            <!-- Files will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Loading State -->
+                <div id="filesLoading" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Загрузка...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Загрузка файлов...</p>
+                </div>
+                
+                <!-- Empty State -->
+                <div id="filesEmpty" class="text-center py-5" style="display: none;">
+                    <i class="fas fa-folder-open fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Папка пуста</h5>
+                    <p class="text-muted">В этой папке нет файлов</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Selection Actions -->
+<div class="row mt-3" id="selectionActions" style="display: none;">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body py-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span id="selectionCount">0 файлов выбрано</span>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-outline-primary" onclick="downloadSelected()">
+                            <i class="fas fa-download me-1"></i>
+                            Скачать
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="moveSelected()">
+                            <i class="fas fa-cut me-1"></i>
+                            Переместить
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="copySelected()">
+                            <i class="fas fa-copy me-1"></i>
+                            Копировать
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteSelected()">
+                            <i class="fas fa-trash me-1"></i>
+                            Удалить
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+<div class="row mt-4" id="paginationContainer" style="display: none;">
+    <div class="col-12">
+        <nav aria-label="Files pagination">
+            <ul class="pagination justify-content-center" id="pagination">
+                <!-- Pagination will be generated here -->
+            </ul>
+        </nav>
+    </div>
+</div>
+
+<!-- File Preview Modal -->
+<div class="modal fade" id="filePreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="previewFileName">Предпросмотр файла</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent">
+                <!-- Preview content will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" onclick="downloadFile(currentPreviewFile)">
+                    <i class="fas fa-download me-2"></i>
+                    Скачать
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="openFile(currentPreviewFile)">
+                    <i class="fas fa-external-link-alt me-2"></i>
+                    Открыть
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Загрузка файлов</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="fileInput" class="form-label">Выберите файлы</label>
+                    <input type="file" class="form-control" id="fileInput" multiple>
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="overwriteFiles">
+                        <label class="form-check-label" for="overwriteFiles">
+                            Перезаписать существующие файлы
+                        </label>
+                    </div>
+                </div>
+                <div id="uploadProgress" style="display: none;">
+                    <div class="progress mb-2">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted" id="uploadStatus">Загрузка...</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="startUpload()">Загрузить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Menu -->
+<div class="dropdown-menu" id="contextMenu" style="display: none; position: absolute; z-index: 1000;">
+    <a class="dropdown-item" href="#" onclick="previewFile(contextMenuFile)">
+        <i class="fas fa-eye me-2"></i>
+        Предпросмотр
+    </a>
+    <a class="dropdown-item" href="#" onclick="downloadFile(contextMenuFile)">
+        <i class="fas fa-download me-2"></i>
+        Скачать
+    </a>
+    <a class="dropdown-item" href="#" onclick="openFile(contextMenuFile)">
+        <i class="fas fa-external-link-alt me-2"></i>
+        Открыть
+    </a>
+    <div class="dropdown-divider"></div>
+    <a class="dropdown-item" href="#" onclick="renameFile(contextMenuFile)">
+        <i class="fas fa-edit me-2"></i>
+        Переименовать
+    </a>
+    <a class="dropdown-item" href="#" onclick="copyFile(contextMenuFile)">
+        <i class="fas fa-copy me-2"></i>
+        Копировать
+    </a>
+    <a class="dropdown-item" href="#" onclick="moveFile(contextMenuFile)">
+        <i class="fas fa-cut me-2"></i>
+        Переместить
+    </a>
+    <div class="dropdown-divider"></div>
+    <a class="dropdown-item text-danger" href="#" onclick="deleteFile(contextMenuFile)">
+        <i class="fas fa-trash me-2"></i>
+        Удалить
+    </a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// File manager state
+let currentPath = '/';
+let currentFiles = [];
+let selectedFiles = new Set();
+let currentPage = 1;
+let totalPages = 1;
+let currentPreviewFile = null;
+let contextMenuFile = null;
+
+// Initialize file manager
+document.addEventListener('DOMContentLoaded', function() {
+    loadFiles();
+    initializeEventListeners();
+});
+
+function initializeEventListeners() {
+    // View mode toggle
+    document.querySelectorAll('input[name="viewMode"]').forEach(radio => {
+        radio.addEventListener('change', toggleViewMode);
+    });
+    
+    // Sort change
+    document.getElementById('sortBy').addEventListener('change', function() {
+        loadFiles();
+    });
+    
+    // Filter
+    document.getElementById('fileFilter').addEventListener('input', function() {
+        filterFiles();
+    });
+    
+    // Context menu
+    document.addEventListener('click', function() {
+        hideContextMenu();
+    });
+    
+    // Prevent context menu on right click
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target.closest('.file-item')) {
+            e.preventDefault();
+        }
+    });
+}
+
+// Load files from server
+async function loadFiles(page = 1) {
+    try {
+        showFilesLoading();
+        
+        const params = new URLSearchParams({
+            path: currentPath,
+            page: page,
+            sort: document.getElementById('sortBy').value,
+            limit: 50
+        });
+        
+        const response = await apiRequest(`/api/files?${params}`);
+        
+        if (response.success) {
+            currentFiles = response.data.files;
+            currentPage = response.data.page;
+            totalPages = response.data.totalPages;
+            
+            updateBreadcrumb();
+            renderFiles();
+            updatePagination();
+        } else {
+            showAlert('Ошибка загрузки файлов: ' + response.error, 'danger');
+            showFilesEmpty();
+        }
+    } catch (error) {
+        console.error('Error loading files:', error);
+        showAlert('Ошибка загрузки файлов', 'danger');
+        showFilesEmpty();
+    } finally {
+        hideFilesLoading();
+    }
+}
+
+// Render files in current view mode
+function renderFiles() {
+    const isGridView = document.getElementById('gridView').checked;
+    
+    if (isGridView) {
+        renderGridView();
+    } else {
+        renderListView();
+    }
+    
+    if (currentFiles.length === 0) {
+        showFilesEmpty();
+    } else {
+        hideFilesEmpty();
+    }
+}
+
+// Render list view
+function renderListView() {
+    const tbody = document.getElementById('filesTableBody');
+    tbody.innerHTML = '';
+    
+    currentFiles.forEach(file => {
+        const row = document.createElement('tr');
+        row.className = 'file-item';
+        row.dataset.filePath = file.path;
+        
+        row.innerHTML = `
+            <td>
+                <input type="checkbox" class="file-checkbox" value="${file.path}" onchange="updateSelection()">
+            </td>
+            <td>
+                <i class="${getFileIcon(file)} fa-lg"></i>
+            </td>
+            <td>
+                <div class="d-flex align-items-center">
+                    <span class="file-name" onclick="${file.isDirectory ? `navigateToPath('${file.path}')` : `previewFile('${file.path}')`}">
+                        ${file.name}
+                    </span>
+                    ${file.tags ? file.tags.map(tag => `<span class="badge bg-secondary ms-2">${tag}</span>`).join('') : ''}
+                </div>
+            </td>
+            <td>${file.isDirectory ? '-' : formatFileSize(file.size)}</td>
+            <td>
+                <span class="badge ${getTypeBadgeClass(file.type)}">${file.type || 'Unknown'}</span>
+            </td>
+            <td>${formatDate(file.modified)}</td>
+            <td>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        ${!file.isDirectory ? `<li><a class="dropdown-item" href="#" onclick="previewFile('${file.path}')"><i class="fas fa-eye me-2"></i>Предпросмотр</a></li>` : ''}
+                        <li><a class="dropdown-item" href="#" onclick="downloadFile('${file.path}')"><i class="fas fa-download me-2"></i>Скачать</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openFile('${file.path}')"><i class="fas fa-external-link-alt me-2"></i>Открыть</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#" onclick="renameFile('${file.path}')"><i class="fas fa-edit me-2"></i>Переименовать</a></li>
+                        <li><a class="dropdown-item text-danger" href="#" onclick="deleteFile('${file.path}')"><i class="fas fa-trash me-2"></i>Удалить</a></li>
+                    </ul>
+                </div>
+            </td>
+        `;
+        
+        // Add right-click context menu
+        row.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            showContextMenu(e, file.path);
+        });
+        
+        tbody.appendChild(row);
+    });
+}
+
+// Render grid view
+function renderGridView() {
+    const grid = document.getElementById('filesGrid');
+    grid.innerHTML = '';
+    
+    currentFiles.forEach(file => {
+        const col = document.createElement('div');
+        col.className = 'col-md-3 col-sm-4 col-6 mb-3';
+        
+        col.innerHTML = `
+            <div class="card file-item h-100" data-file-path="${file.path}">
+                <div class="card-body text-center p-3">
+                    <div class="mb-2">
+                        <input type="checkbox" class="file-checkbox position-absolute top-0 start-0 m-2" value="${file.path}" onchange="updateSelection()">
+                    </div>
+                    <div class="mb-3">
+                        <i class="${getFileIcon(file)} fa-3x text-primary"></i>
+                    </div>
+                    <h6 class="card-title file-name" onclick="${file.isDirectory ? `navigateToPath('${file.path}')` : `previewFile('${file.path}')`}" title="${file.name}">
+                        ${file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name}
+                    </h6>
+                    <small class="text-muted">
+                        ${file.isDirectory ? 'Папка' : formatFileSize(file.size)}
+                    </small>
+                    ${file.tags ? '<div class="mt-2">' + file.tags.map(tag => `<span class="badge bg-secondary">${tag}</span>`).join(' ') + '</div>' : ''}
+                </div>
+            </div>
+        `;
+        
+        // Add right-click context menu
+        col.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            showContextMenu(e, file.path);
+        });
+        
+        grid.appendChild(col);
+    });
+}
+
+// Get file icon class
+function getFileIcon(file) {
+    if (file.isDirectory) {
+        return 'fas fa-folder text-warning';
+    }
+    
+    const ext = file.name.split('.').pop().toLowerCase();
+    const iconMap = {
+        // Code files
+        'js': 'fab fa-js-square text-warning',
+        'ts': 'fab fa-js-square text-primary',
+        'py': 'fab fa-python text-success',
+        'java': 'fab fa-java text-danger',
+        'cpp': 'fas fa-code text-primary',
+        'c': 'fas fa-code text-primary',
+        'cs': 'fas fa-code text-purple',
+        'php': 'fab fa-php text-primary',
+        'rb': 'fas fa-gem text-danger',
+        'go': 'fas fa-code text-info',
+        'rs': 'fas fa-code text-warning',
+        
+        // Web files
+        'html': 'fab fa-html5 text-danger',
+        'css': 'fab fa-css3-alt text-primary',
+        'scss': 'fab fa-sass text-pink',
+        'less': 'fas fa-code text-primary',
+        
+        // Documents
+        'pdf': 'fas fa-file-pdf text-danger',
+        'doc': 'fas fa-file-word text-primary',
+        'docx': 'fas fa-file-word text-primary',
+        'xls': 'fas fa-file-excel text-success',
+        'xlsx': 'fas fa-file-excel text-success',
+        'ppt': 'fas fa-file-powerpoint text-warning',
+        'pptx': 'fas fa-file-powerpoint text-warning',
+        'txt': 'fas fa-file-alt text-secondary',
+        'md': 'fab fa-markdown text-dark',
+        
+        // Images
+        'jpg': 'fas fa-file-image text-success',
+        'jpeg': 'fas fa-file-image text-success',
+        'png': 'fas fa-file-image text-success',
+        'gif': 'fas fa-file-image text-success',
+        'svg': 'fas fa-file-image text-success',
+        'webp': 'fas fa-file-image text-success',
+        
+        // Archives
+        'zip': 'fas fa-file-archive text-warning',
+        'rar': 'fas fa-file-archive text-warning',
+        '7z': 'fas fa-file-archive text-warning',
+        'tar': 'fas fa-file-archive text-warning',
+        'gz': 'fas fa-file-archive text-warning',
+        
+        // Config files
+        'json': 'fas fa-file-code text-warning',
+        'xml': 'fas fa-file-code text-warning',
+        'yml': 'fas fa-file-code text-primary',
+        'yaml': 'fas fa-file-code text-primary',
+        'toml': 'fas fa-file-code text-primary',
+        'ini': 'fas fa-file-code text-secondary',
+        'env': 'fas fa-file-code text-success'
+    };
+    
+    return iconMap[ext] || 'fas fa-file text-secondary';
+}
+
+// Get type badge class
+function getTypeBadgeClass(type) {
+    const classMap = {
+        'Code': 'bg-primary',
+        'Document': 'bg-info',
+        'Image': 'bg-success',
+        'Archive': 'bg-warning',
+        'Config': 'bg-secondary',
+        'Data': 'bg-dark'
+    };
+    
+    return classMap[type] || 'bg-light text-dark';
+}
+
+// Toggle view mode
+function toggleViewMode() {
+    const isGridView = document.getElementById('gridView').checked;
+    
+    document.getElementById('listViewContainer').style.display = isGridView ? 'none' : 'block';
+    document.getElementById('gridViewContainer').style.display = isGridView ? 'block' : 'none';
+    
+    renderFiles();
+}
+
+// Update breadcrumb
+function updateBreadcrumb() {
+    const breadcrumb = document.getElementById('breadcrumb');
+    const parts = currentPath.split('/').filter(p => p);
+    
+    let html = `
+        <li class="breadcrumb-item">
+            <a href="#" onclick="navigateToPath('/')">
+                <i class="fas fa-home"></i>
+            </a>
+        </li>
+    `;
+    
+    let path = '';
+    parts.forEach((part, index) => {
+        path += '/' + part;
+        const isLast = index === parts.length - 1;
+        
+        if (isLast) {
+            html += `<li class="breadcrumb-item active">${part}</li>`;
+        } else {
+            html += `<li class="breadcrumb-item"><a href="#" onclick="navigateToPath('${path}')">${part}</a></li>`;
+        }
+    });
+    
+    breadcrumb.innerHTML = html;
+}
+
+// Navigate to path
+function navigateToPath(path) {
+    currentPath = path;
+    selectedFiles.clear();
+    updateSelectionUI();
+    loadFiles();
+}
+
+// Filter files
+function filterFiles() {
+    const filter = document.getElementById('fileFilter').value.toLowerCase();
+    const rows = document.querySelectorAll('.file-item');
+    
+    rows.forEach(row => {
+        const fileName = row.querySelector('.file-name').textContent.toLowerCase();
+        row.style.display = fileName.includes(filter) ? '' : 'none';
+    });
+}
+
+// Selection management
+function toggleSelectAll() {
+    const selectAll = document.getElementById('selectAll');
+    const checkboxes = document.querySelectorAll('.file-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = selectAll.checked;
+    });
+    
+    updateSelection();
+}
+
+function updateSelection() {
+    const checkboxes = document.querySelectorAll('.file-checkbox:checked');
+    selectedFiles.clear();
+    
+    checkboxes.forEach(checkbox => {
+        selectedFiles.add(checkbox.value);
+    });
+    
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const count = selectedFiles.size;
+    const selectionActions = document.getElementById('selectionActions');
+    const selectionCount = document.getElementById('selectionCount');
+    
+    if (count > 0) {
+        selectionActions.style.display = 'block';
+        selectionCount.textContent = `${count} файл${count > 1 ? (count > 4 ? 'ов' : 'а') : ''} выбрано`;
+    } else {
+        selectionActions.style.display = 'none';
+    }
+    
+    // Update select all checkbox
+    const selectAll = document.getElementById('selectAll');
+    const allCheckboxes = document.querySelectorAll('.file-checkbox');
+    const checkedCheckboxes = document.querySelectorAll('.file-checkbox:checked');
+    
+    if (checkedCheckboxes.length === 0) {
+        selectAll.indeterminate = false;
+        selectAll.checked = false;
+    } else if (checkedCheckboxes.length === allCheckboxes.length) {
+        selectAll.indeterminate = false;
+        selectAll.checked = true;
+    } else {
+        selectAll.indeterminate = true;
+    }
+}
+
+// Context menu
+function showContextMenu(event, filePath) {
+    contextMenuFile = filePath;
+    const menu = document.getElementById('contextMenu');
+    
+    menu.style.display = 'block';
+    menu.style.left = event.pageX + 'px';
+    menu.style.top = event.pageY + 'px';
+}
+
+function hideContextMenu() {
+    document.getElementById('contextMenu').style.display = 'none';
+}
+
+// File operations
+function previewFile(filePath) {
+    currentPreviewFile = filePath;
+    const file = currentFiles.find(f => f.path === filePath);
+    
+    if (!file || file.isDirectory) return;
+    
+    document.getElementById('previewFileName').textContent = file.name;
+    
+    // Load preview content based on file type
+    loadPreviewContent(file);
+    
+    new bootstrap.Modal(document.getElementById('filePreviewModal')).show();
+}
+
+async function loadPreviewContent(file) {
+    const container = document.getElementById('previewContent');
+    container.innerHTML = '<div class="text-center"><div class="spinner-border"></div><p class="mt-2">Загрузка предпросмотра...</p></div>';
+    
+    try {
+        const response = await apiRequest(`/api/files/preview?path=${encodeURIComponent(file.path)}`);
+        
+        if (response.success) {
+            if (file.type === 'Image') {
+                container.innerHTML = `<img src="data:${response.data.mimeType};base64,${response.data.content}" class="img-fluid" alt="${file.name}">`;
+            } else if (file.type === 'Code' || file.type === 'Document') {
+                container.innerHTML = `<pre><code>${escapeHtml(response.data.content)}</code></pre>`;
+            } else {
+                container.innerHTML = `<p class="text-muted">Предпросмотр недоступен для данного типа файла</p>`;
+            }
+        } else {
+            container.innerHTML = `<p class="text-danger">Ошибка загрузки предпросмотра: ${response.error}</p>`;
+        }
+    } catch (error) {
+        container.innerHTML = `<p class="text-danger">Ошибка загрузки предпросмотра</p>`;
+    }
+}
+
+function downloadFile(filePath) {
+    window.open(`/api/files/download?path=${encodeURIComponent(filePath)}`, '_blank');
+}
+
+function openFile(filePath) {
+    // This would typically open the file in the system's default application
+    showAlert('Функция открытия файла будет реализована в следующей версии', 'info');
+}
+
+function renameFile(filePath) {
+    const file = currentFiles.find(f => f.path === filePath);
+    if (!file) return;
+    
+    const newName = prompt('Введите новое имя файла:', file.name);
+    if (!newName || newName === file.name) return;
+    
+    // TODO: Implement rename API call
+    showAlert('Функция переименования будет реализована в следующей версии', 'info');
+}
+
+function deleteFile(filePath) {
+    const file = currentFiles.find(f => f.path === filePath);
+    if (!file) return;
+    
+    if (confirm(`Вы уверены, что хотите удалить ${file.isDirectory ? 'папку' : 'файл'} "${file.name}"?`)) {
+        // TODO: Implement delete API call
+        showAlert('Функция удаления будет реализована в следующей версии', 'info');
+    }
+}
+
+// Batch operations
+function downloadSelected() {
+    if (selectedFiles.size === 0) return;
+    
+    // TODO: Implement batch download
+    showAlert('Функция пакетного скачивания будет реализована в следующей версии', 'info');
+}
+
+function moveSelected() {
+    if (selectedFiles.size === 0) return;
+    
+    // TODO: Implement batch move
+    showAlert('Функция пакетного перемещения будет реализована в следующей версии', 'info');
+}
+
+function copySelected() {
+    if (selectedFiles.size === 0) return;
+    
+    // TODO: Implement batch copy
+    showAlert('Функция пакетного копирования будет реализована в следующей версии', 'info');
+}
+
+function deleteSelected() {
+    if (selectedFiles.size === 0) return;
+    
+    if (confirm(`Вы уверены, что хотите удалить ${selectedFiles.size} выбранных файлов?`)) {
+        // TODO: Implement batch delete
+        showAlert('Функция пакетного удаления будет реализована в следующей версии', 'info');
+    }
+}
+
+// Upload functionality
+function uploadFiles() {
+    new bootstrap.Modal(document.getElementById('uploadModal')).show();
+}
+
+function startUpload() {
+    const fileInput = document.getElementById('fileInput');
+    const files = fileInput.files;
+    
+    if (files.length === 0) {
+        showAlert('Выберите файлы для загрузки', 'warning');
+        return;
+    }
+    
+    // TODO: Implement file upload
+    showAlert('Функция загрузки файлов будет реализована в следующей версии', 'info');
+}
+
+// Utility functions
+function refreshFiles() {
+    loadFiles(currentPage);
+}
+
+function showFilesLoading() {
+    document.getElementById('filesLoading').style.display = 'block';
+    document.getElementById('listViewContainer').style.display = 'none';
+    document.getElementById('gridViewContainer').style.display = 'none';
+    document.getElementById('filesEmpty').style.display = 'none';
+}
+
+function hideFilesLoading() {
+    document.getElementById('filesLoading').style.display = 'none';
+    toggleViewMode();
+}
+
+function showFilesEmpty() {
+    document.getElementById('filesEmpty').style.display = 'block';
+    document.getElementById('listViewContainer').style.display = 'none';
+    document.getElementById('gridViewContainer').style.display = 'none';
+}
+
+function hideFilesEmpty() {
+    document.getElementById('filesEmpty').style.display = 'none';
+}
+
+function updatePagination() {
+    const pagination = document.getElementById('pagination');
+    const container = document.getElementById('paginationContainer');
+    
+    if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+    }
+    
+    container.style.display = 'block';
+    
+    let html = '';
+    
+    // Previous button
+    html += `
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="loadFiles(${currentPage - 1})">
+                <i class="fas fa-chevron-left"></i>
+            </a>
+        </li>
+    `;
+    
+    // Page numbers
+    const startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, currentPage + 2);
+    
+    if (startPage > 1) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadFiles(1)">1</a></li>`;
+        if (startPage > 2) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+        html += `
+            <li class="page-item ${i === currentPage ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="loadFiles(${i})">${i}</a>
+            </li>
+        `;
+    }
+    
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        }
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="loadFiles(${totalPages})">${totalPages}</a></li>`;
+    }
+    
+    // Next button
+    html += `
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="loadFiles(${currentPage + 1})">
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+    `;
+    
+    pagination.innerHTML = html;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

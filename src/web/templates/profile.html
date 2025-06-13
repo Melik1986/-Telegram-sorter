@@ -1,0 +1,1232 @@
+{% extends "base.html" %}
+
+{% block title %}Профиль - DevDataSorter{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-1">
+                    <i class="fas fa-user-circle me-2 text-primary"></i>
+                    Профиль пользователя
+                </h2>
+                <p class="text-muted mb-0">Управление учетной записью и персональными настройками</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary" onclick="exportProfile()">
+                    <i class="fas fa-download me-2"></i>
+                    Экспорт данных
+                </button>
+                <button class="btn btn-primary" onclick="saveProfile()">
+                    <i class="fas fa-save me-2"></i>
+                    Сохранить изменения
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Profile Sidebar -->
+    <div class="col-lg-3 col-md-4 mb-4">
+        <div class="card sticky-top" style="top: 1rem;">
+            <!-- Profile Avatar -->
+            <div class="card-body text-center">
+                <div class="position-relative d-inline-block mb-3">
+                    <img src="/static/images/default-avatar.png" alt="Avatar" class="rounded-circle" width="100" height="100" id="profileAvatar">
+                    <button class="btn btn-sm btn-primary position-absolute bottom-0 end-0 rounded-circle" onclick="changeAvatar()" style="width: 30px; height: 30px; padding: 0;">
+                        <i class="fas fa-camera"></i>
+                    </button>
+                </div>
+                <h5 class="mb-1" id="profileDisplayName">Пользователь</h5>
+                <p class="text-muted mb-3" id="profileRole">Администратор</p>
+                <div class="d-flex justify-content-center gap-2">
+                    <span class="badge bg-success" id="profileStatus">Активен</span>
+                    <span class="badge bg-info" id="profilePlan">Pro</span>
+                </div>
+            </div>
+            
+            <!-- Navigation Menu -->
+            <div class="list-group list-group-flush">
+                <a href="#general" class="list-group-item list-group-item-action active" data-tab="general">
+                    <i class="fas fa-user me-2"></i>
+                    Общая информация
+                </a>
+                <a href="#security" class="list-group-item list-group-item-action" data-tab="security">
+                    <i class="fas fa-shield-alt me-2"></i>
+                    Безопасность
+                </a>
+                <a href="#preferences" class="list-group-item list-group-item-action" data-tab="preferences">
+                    <i class="fas fa-cog me-2"></i>
+                    Предпочтения
+                </a>
+                <a href="#notifications" class="list-group-item list-group-item-action" data-tab="notifications">
+                    <i class="fas fa-bell me-2"></i>
+                    Уведомления
+                </a>
+                <a href="#activity" class="list-group-item list-group-item-action" data-tab="activity">
+                    <i class="fas fa-history me-2"></i>
+                    Активность
+                </a>
+                <a href="#api-keys" class="list-group-item list-group-item-action" data-tab="api-keys">
+                    <i class="fas fa-key me-2"></i>
+                    API ключи
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="col-lg-9 col-md-8">
+        <!-- General Information Tab -->
+        <div class="tab-content" id="general" style="display: block;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-user me-2"></i>
+                        Общая информация
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="generalForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="firstName" class="form-label">Имя</label>
+                                <input type="text" class="form-control" id="firstName" value="Иван">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="lastName" class="form-label">Фамилия</label>
+                                <input type="text" class="form-control" id="lastName" value="Иванов">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="email" value="ivan@example.com">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="phone" class="form-label">Телефон</label>
+                                <input type="tel" class="form-control" id="phone" value="+7 (999) 123-45-67">
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="department" class="form-label">Отдел</label>
+                                <select class="form-select" id="department">
+                                    <option value="">Выберите отдел</option>
+                                    <option value="development" selected>Разработка</option>
+                                    <option value="qa">Тестирование</option>
+                                    <option value="devops">DevOps</option>
+                                    <option value="management">Управление</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="position" class="form-label">Должность</label>
+                                <input type="text" class="form-control" id="position" value="Senior Developer">
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="bio" class="form-label">О себе</label>
+                            <textarea class="form-control" id="bio" rows="3" placeholder="Расскажите о себе...">Опытный разработчик с 5+ годами опыта в области веб-разработки и анализа данных.</textarea>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="timezone" class="form-label">Часовой пояс</label>
+                                <select class="form-select" id="timezone">
+                                    <option value="Europe/Moscow" selected>Москва (UTC+3)</option>
+                                    <option value="Europe/Kiev">Киев (UTC+2)</option>
+                                    <option value="Europe/Minsk">Минск (UTC+3)</option>
+                                    <option value="Asia/Almaty">Алматы (UTC+6)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="language" class="form-label">Язык интерфейса</label>
+                                <select class="form-select" id="language">
+                                    <option value="ru" selected>Русский</option>
+                                    <option value="en">English</option>
+                                    <option value="uk">Українська</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Security Tab -->
+        <div class="tab-content" id="security" style="display: none;">
+            <div class="row">
+                <!-- Change Password -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-lock me-2"></i>
+                                Смена пароля
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="passwordForm">
+                                <div class="mb-3">
+                                    <label for="currentPassword" class="form-label">Текущий пароль</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="currentPassword">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('currentPassword')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="newPassword" class="form-label">Новый пароль</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="newPassword">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('newPassword')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Пароль должен содержать минимум 8 символов, включая буквы и цифры</div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="confirmPassword" class="form-label">Подтверждение пароля</label>
+                                    <div class="input-group">
+                                        <input type="password" class="form-control" id="confirmPassword">
+                                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword('confirmPassword')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <button type="button" class="btn btn-primary" onclick="changePassword()">
+                                    <i class="fas fa-save me-2"></i>
+                                    Изменить пароль
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Two-Factor Authentication -->
+                <div class="col-12 mb-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-mobile-alt me-2"></i>
+                                Двухфакторная аутентификация
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div>
+                                    <h6 class="mb-1">2FA статус</h6>
+                                    <p class="text-muted mb-0">Дополнительная защита вашей учетной записи</p>
+                                </div>
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="twoFactorEnabled">
+                                    <label class="form-check-label" for="twoFactorEnabled"></label>
+                                </div>
+                            </div>
+                            
+                            <div id="twoFactorSetup" style="display: none;">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Отсканируйте QR-код в приложении Google Authenticator или введите ключ вручную.
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="text-center mb-3">
+                                            <div id="qrCode" class="border p-3 bg-light">
+                                                <!-- QR Code will be generated here -->
+                                                <i class="fas fa-qrcode fa-5x text-muted"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="secretKey" class="form-label">Секретный ключ</label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="secretKey" value="JBSWY3DPEHPK3PXP" readonly>
+                                                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('secretKey')">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="verificationCode" class="form-label">Код подтверждения</label>
+                                            <input type="text" class="form-control" id="verificationCode" placeholder="Введите 6-значный код">
+                                        </div>
+                                        
+                                        <button type="button" class="btn btn-success" onclick="verify2FA()">
+                                            <i class="fas fa-check me-2"></i>
+                                            Подтвердить
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active Sessions -->
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-desktop me-2"></i>
+                                Активные сессии
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="activeSessions">
+                                <!-- Sessions will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Preferences Tab -->
+        <div class="tab-content" id="preferences" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cog me-2"></i>
+                        Предпочтения интерфейса
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="preferencesForm">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="theme" class="form-label">Тема оформления</label>
+                                <select class="form-select" id="theme">
+                                    <option value="light" selected>Светлая</option>
+                                    <option value="dark">Темная</option>
+                                    <option value="auto">Автоматическая</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="dateFormat" class="form-label">Формат даты</label>
+                                <select class="form-select" id="dateFormat">
+                                    <option value="dd.mm.yyyy" selected>ДД.ММ.ГГГГ</option>
+                                    <option value="mm/dd/yyyy">ММ/ДД/ГГГГ</option>
+                                    <option value="yyyy-mm-dd">ГГГГ-ММ-ДД</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="itemsPerPage" class="form-label">Элементов на странице</label>
+                                <select class="form-select" id="itemsPerPage">
+                                    <option value="10">10</option>
+                                    <option value="25" selected>25</option>
+                                    <option value="50">50</option>
+                                    <option value="100">100</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="defaultView" class="form-label">Вид по умолчанию</label>
+                                <select class="form-select" id="defaultView">
+                                    <option value="list" selected>Список</option>
+                                    <option value="grid">Сетка</option>
+                                    <option value="table">Таблица</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Настройки дашборда</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showWelcome" checked>
+                                <label class="form-check-label" for="showWelcome">
+                                    Показывать приветственное сообщение
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showStats" checked>
+                                <label class="form-check-label" for="showStats">
+                                    Показывать статистику на главной
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="showRecentFiles" checked>
+                                <label class="form-check-label" for="showRecentFiles">
+                                    Показывать недавние файлы
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Настройки поиска</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="searchHistory" checked>
+                                <label class="form-check-label" for="searchHistory">
+                                    Сохранять историю поиска
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="autoComplete" checked>
+                                <label class="form-check-label" for="autoComplete">
+                                    Автодополнение в поиске
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="searchSuggestions" checked>
+                                <label class="form-check-label" for="searchSuggestions">
+                                    Показывать предложения поиска
+                                </label>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notifications Tab -->
+        <div class="tab-content" id="notifications" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bell me-2"></i>
+                        Настройки уведомлений
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form id="notificationsForm">
+                        <div class="mb-4">
+                            <h6>Email уведомления</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="emailScanComplete" checked>
+                                <label class="form-check-label" for="emailScanComplete">
+                                    Завершение сканирования
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="emailReportReady" checked>
+                                <label class="form-check-label" for="emailReportReady">
+                                    Готовность отчета
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="emailSystemErrors">
+                                <label class="form-check-label" for="emailSystemErrors">
+                                    Системные ошибки
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="emailWeeklyDigest" checked>
+                                <label class="form-check-label" for="emailWeeklyDigest">
+                                    Еженедельная сводка
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6>Браузерные уведомления</h6>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="browserNotifications" checked>
+                                <label class="form-check-label" for="browserNotifications">
+                                    Включить браузерные уведомления
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="browserSounds">
+                                <label class="form-check-label" for="browserSounds">
+                                    Звуковые уведомления
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="notificationEmail" class="form-label">Email для уведомлений</label>
+                            <input type="email" class="form-control" id="notificationEmail" value="ivan@example.com">
+                            <div class="form-text">Может отличаться от основного email</div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="testNotification()">
+                            <i class="fas fa-paper-plane me-2"></i>
+                            Отправить тестовое уведомление
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Tab -->
+        <div class="tab-content" id="activity" style="display: none;">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history me-2"></i>
+                        История активности
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="d-flex gap-2">
+                            <select class="form-select form-select-sm" id="activityFilter" style="width: auto;">
+                                <option value="all">Все действия</option>
+                                <option value="login">Входы в систему</option>
+                                <option value="search">Поиск</option>
+                                <option value="download">Скачивания</option>
+                                <option value="settings">Изменения настроек</option>
+                            </select>
+                            <select class="form-select form-select-sm" id="activityPeriod" style="width: auto;">
+                                <option value="today">Сегодня</option>
+                                <option value="week" selected>Неделя</option>
+                                <option value="month">Месяц</option>
+                                <option value="all">Все время</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="clearActivityHistory()">
+                            <i class="fas fa-trash me-2"></i>
+                            Очистить историю
+                        </button>
+                    </div>
+                    
+                    <div id="activityList">
+                        <!-- Activity items will be loaded here -->
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <button class="btn btn-outline-primary" onclick="loadMoreActivity()">
+                            <i class="fas fa-chevron-down me-2"></i>
+                            Загрузить еще
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- API Keys Tab -->
+        <div class="tab-content" id="api-keys" style="display: none;">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-key me-2"></i>
+                        API ключи
+                    </h5>
+                    <button class="btn btn-primary btn-sm" onclick="createApiKey()">
+                        <i class="fas fa-plus me-2"></i>
+                        Создать ключ
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        API ключи позволяют интегрировать DevDataSorter с внешними системами. Храните ключи в безопасности.
+                    </div>
+                    
+                    <div id="apiKeysList">
+                        <!-- API keys will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Avatar Modal -->
+<div class="modal fade" id="avatarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-camera me-2"></i>
+                    Изменить аватар
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <img src="/static/images/default-avatar.png" alt="Preview" class="rounded-circle" width="150" height="150" id="avatarPreview">
+                </div>
+                
+                <div class="mb-3">
+                    <label for="avatarFile" class="form-label">Выберите изображение</label>
+                    <input type="file" class="form-control" id="avatarFile" accept="image/*">
+                    <div class="form-text">Поддерживаются форматы: JPG, PNG, GIF. Максимальный размер: 2MB</div>
+                </div>
+                
+                <div class="text-center">
+                    <h6>Или выберите готовый аватар:</h6>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap">
+                        <img src="/static/images/avatar1.png" class="rounded-circle border avatar-option" width="50" height="50" onclick="selectAvatar(this)">
+                        <img src="/static/images/avatar2.png" class="rounded-circle border avatar-option" width="50" height="50" onclick="selectAvatar(this)">
+                        <img src="/static/images/avatar3.png" class="rounded-circle border avatar-option" width="50" height="50" onclick="selectAvatar(this)">
+                        <img src="/static/images/avatar4.png" class="rounded-circle border avatar-option" width="50" height="50" onclick="selectAvatar(this)">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="saveAvatar()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create API Key Modal -->
+<div class="modal fade" id="apiKeyModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-key me-2"></i>
+                    Создать API ключ
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="apiKeyForm">
+                    <div class="mb-3">
+                        <label for="keyName" class="form-label">Название ключа</label>
+                        <input type="text" class="form-control" id="keyName" placeholder="Например: Mobile App">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="keyDescription" class="form-label">Описание</label>
+                        <textarea class="form-control" id="keyDescription" rows="2" placeholder="Для чего будет использоваться этот ключ?"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Права доступа</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="permRead" checked>
+                            <label class="form-check-label" for="permRead">
+                                Чтение данных
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="permWrite">
+                            <label class="form-check-label" for="permWrite">
+                                Запись данных
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="permAdmin">
+                            <label class="form-check-label" for="permAdmin">
+                                Административные функции
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="keyExpiry" class="form-label">Срок действия</label>
+                        <select class="form-select" id="keyExpiry">
+                            <option value="never">Без ограничений</option>
+                            <option value="30">30 дней</option>
+                            <option value="90" selected>90 дней</option>
+                            <option value="365">1 год</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" onclick="generateApiKey()">Создать ключ</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Profile page functionality
+document.addEventListener('DOMContentLoaded', function() {
+    initializeProfile();
+    loadProfileData();
+    setupTabNavigation();
+});
+
+function initializeProfile() {
+    // Setup tab navigation
+    document.querySelectorAll('[data-tab]').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            switchTab(this.dataset.tab);
+        });
+    });
+    
+    // Setup 2FA toggle
+    document.getElementById('twoFactorEnabled').addEventListener('change', function() {
+        toggleTwoFactor(this.checked);
+    });
+    
+    // Setup avatar file input
+    document.getElementById('avatarFile').addEventListener('change', function() {
+        previewAvatar(this.files[0]);
+    });
+    
+    // Setup activity filters
+    document.getElementById('activityFilter').addEventListener('change', loadActivity);
+    document.getElementById('activityPeriod').addEventListener('change', loadActivity);
+}
+
+function loadProfileData() {
+    // TODO: Load actual profile data from API
+    fetch('/api/profile')
+        .then(response => response.json())
+        .then(data => {
+            updateProfileDisplay(data);
+        })
+        .catch(error => {
+            console.error('Error loading profile:', error);
+            // Use default data for demo
+            updateProfileDisplay({
+                firstName: 'Иван',
+                lastName: 'Иванов',
+                email: 'ivan@example.com',
+                role: 'Администратор',
+                status: 'active',
+                plan: 'pro'
+            });
+        });
+    
+    loadActiveSessions();
+    loadActivity();
+    loadApiKeys();
+}
+
+function updateProfileDisplay(data) {
+    document.getElementById('profileDisplayName').textContent = `${data.firstName} ${data.lastName}`;
+    document.getElementById('profileRole').textContent = data.role;
+    
+    // Update form fields
+    if (data.firstName) document.getElementById('firstName').value = data.firstName;
+    if (data.lastName) document.getElementById('lastName').value = data.lastName;
+    if (data.email) document.getElementById('email').value = data.email;
+}
+
+function setupTabNavigation() {
+    // Handle browser back/forward
+    window.addEventListener('popstate', function(e) {
+        if (e.state && e.state.tab) {
+            switchTab(e.state.tab, false);
+        }
+    });
+}
+
+function switchTab(tabName, updateHistory = true) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Remove active class from all navigation items
+    document.querySelectorAll('[data-tab]').forEach(link => {
+        link.classList.remove('active');
+    });
+    
+    // Show selected tab
+    const selectedTab = document.getElementById(tabName);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+    }
+    
+    // Add active class to selected navigation item
+    const selectedLink = document.querySelector(`[data-tab="${tabName}"]`);
+    if (selectedLink) {
+        selectedLink.classList.add('active');
+    }
+    
+    // Update URL
+    if (updateHistory) {
+        history.pushState({tab: tabName}, '', `#${tabName}`);
+    }
+}
+
+function saveProfile() {
+    const formData = {
+        firstName: document.getElementById('firstName').value,
+        lastName: document.getElementById('lastName').value,
+        email: document.getElementById('email').value,
+        phone: document.getElementById('phone').value,
+        department: document.getElementById('department').value,
+        position: document.getElementById('position').value,
+        bio: document.getElementById('bio').value,
+        timezone: document.getElementById('timezone').value,
+        language: document.getElementById('language').value
+    };
+    
+    // TODO: Send to API
+    fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        showAlert('Профиль успешно обновлен!', 'success');
+        updateProfileDisplay(formData);
+    })
+    .catch(error => {
+        showAlert('Ошибка при сохранении профиля', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function changePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        showAlert('Заполните все поля', 'warning');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        showAlert('Пароли не совпадают', 'warning');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        showAlert('Пароль должен содержать минимум 8 символов', 'warning');
+        return;
+    }
+    
+    // TODO: Send to API
+    fetch('/api/profile/password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            currentPassword,
+            newPassword
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        showAlert('Пароль успешно изменен!', 'success');
+        document.getElementById('passwordForm').reset();
+    })
+    .catch(error => {
+        showAlert('Ошибка при изменении пароля', 'error');
+        console.error('Error:', error);
+    });
+}
+
+function togglePassword(fieldId) {
+    const field = document.getElementById(fieldId);
+    const button = field.nextElementSibling;
+    const icon = button.querySelector('i');
+    
+    if (field.type === 'password') {
+        field.type = 'text';
+        icon.className = 'fas fa-eye-slash';
+    } else {
+        field.type = 'password';
+        icon.className = 'fas fa-eye';
+    }
+}
+
+function toggleTwoFactor(enabled) {
+    const setupDiv = document.getElementById('twoFactorSetup');
+    setupDiv.style.display = enabled ? 'block' : 'none';
+    
+    if (enabled) {
+        generateQRCode();
+    }
+}
+
+function generateQRCode() {
+    // TODO: Generate actual QR code
+    const qrDiv = document.getElementById('qrCode');
+    qrDiv.innerHTML = '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==" alt="QR Code" width="150" height="150">';
+}
+
+function verify2FA() {
+    const code = document.getElementById('verificationCode').value;
+    
+    if (!code || code.length !== 6) {
+        showAlert('Введите 6-значный код', 'warning');
+        return;
+    }
+    
+    // TODO: Verify with API
+    showAlert('Двухфакторная аутентификация успешно настроена!', 'success');
+}
+
+function loadActiveSessions() {
+    const sessionsDiv = document.getElementById('activeSessions');
+    
+    // Mock data
+    const sessions = [
+        {
+            id: '1',
+            device: 'Chrome на Windows',
+            location: 'Москва, Россия',
+            ip: '192.168.1.100',
+            lastActivity: '2024-01-15 14:30',
+            current: true
+        },
+        {
+            id: '2',
+            device: 'Safari на iPhone',
+            location: 'Москва, Россия',
+            ip: '192.168.1.101',
+            lastActivity: '2024-01-15 12:15',
+            current: false
+        }
+    ];
+    
+    sessionsDiv.innerHTML = sessions.map(session => `
+        <div class="d-flex justify-content-between align-items-center p-3 border rounded mb-2">
+            <div>
+                <h6 class="mb-1">
+                    <i class="fas fa-${session.device.includes('iPhone') ? 'mobile-alt' : 'desktop'} me-2"></i>
+                    ${session.device}
+                    ${session.current ? '<span class="badge bg-success ms-2">Текущая</span>' : ''}
+                </h6>
+                <p class="text-muted mb-0">
+                    <i class="fas fa-map-marker-alt me-1"></i>
+                    ${session.location} • ${session.ip}
+                </p>
+                <small class="text-muted">Последняя активность: ${session.lastActivity}</small>
+            </div>
+            ${!session.current ? `
+                <button class="btn btn-outline-danger btn-sm" onclick="terminateSession('${session.id}')">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    Завершить
+                </button>
+            ` : ''}
+        </div>
+    `).join('');
+}
+
+function terminateSession(sessionId) {
+    if (confirm('Завершить эту сессию?')) {
+        // TODO: Send to API
+        showAlert('Сессия завершена', 'success');
+        loadActiveSessions();
+    }
+}
+
+function loadActivity() {
+    const filter = document.getElementById('activityFilter').value;
+    const period = document.getElementById('activityPeriod').value;
+    const activityDiv = document.getElementById('activityList');
+    
+    // Mock data
+    const activities = [
+        {
+            type: 'login',
+            description: 'Вход в систему',
+            timestamp: '2024-01-15 14:30:25',
+            ip: '192.168.1.100',
+            device: 'Chrome на Windows'
+        },
+        {
+            type: 'search',
+            description: 'Поиск файлов: "config.js"',
+            timestamp: '2024-01-15 14:25:10',
+            details: 'Найдено 15 результатов'
+        },
+        {
+            type: 'download',
+            description: 'Скачивание файла: report.pdf',
+            timestamp: '2024-01-15 14:20:45',
+            size: '2.5 MB'
+        },
+        {
+            type: 'settings',
+            description: 'Изменение настроек профиля',
+            timestamp: '2024-01-15 14:15:30',
+            changes: 'Обновлен email'
+        }
+    ];
+    
+    const filteredActivities = filter === 'all' ? activities : activities.filter(a => a.type === filter);
+    
+    activityDiv.innerHTML = filteredActivities.map(activity => `
+        <div class="d-flex align-items-start p-3 border-bottom">
+            <div class="me-3">
+                <i class="fas fa-${getActivityIcon(activity.type)} text-${getActivityColor(activity.type)}"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h6 class="mb-1">${activity.description}</h6>
+                <p class="text-muted mb-1">
+                    <small>
+                        <i class="fas fa-clock me-1"></i>
+                        ${activity.timestamp}
+                        ${activity.ip ? `• <i class="fas fa-globe me-1"></i>${activity.ip}` : ''}
+                        ${activity.device ? `• ${activity.device}` : ''}
+                    </small>
+                </p>
+                ${activity.details ? `<small class="text-info">${activity.details}</small>` : ''}
+                ${activity.size ? `<small class="text-info">Размер: ${activity.size}</small>` : ''}
+                ${activity.changes ? `<small class="text-info">${activity.changes}</small>` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+function getActivityIcon(type) {
+    const icons = {
+        login: 'sign-in-alt',
+        search: 'search',
+        download: 'download',
+        settings: 'cog'
+    };
+    return icons[type] || 'circle';
+}
+
+function getActivityColor(type) {
+    const colors = {
+        login: 'success',
+        search: 'info',
+        download: 'primary',
+        settings: 'warning'
+    };
+    return colors[type] || 'secondary';
+}
+
+function clearActivityHistory() {
+    if (confirm('Очистить всю историю активности?')) {
+        // TODO: Send to API
+        document.getElementById('activityList').innerHTML = '<p class="text-center text-muted">История активности очищена</p>';
+        showAlert('История активности очищена', 'success');
+    }
+}
+
+function loadMoreActivity() {
+    // TODO: Load more activity items
+    showAlert('Загружены дополнительные записи', 'info');
+}
+
+function loadApiKeys() {
+    const keysDiv = document.getElementById('apiKeysList');
+    
+    // Mock data
+    const apiKeys = [
+        {
+            id: '1',
+            name: 'Mobile App',
+            key: 'sk_live_51H...abc123',
+            permissions: ['read', 'write'],
+            created: '2024-01-10',
+            lastUsed: '2024-01-15',
+            status: 'active'
+        },
+        {
+            id: '2',
+            name: 'Analytics Service',
+            key: 'sk_live_51H...def456',
+            permissions: ['read'],
+            created: '2024-01-05',
+            lastUsed: '2024-01-14',
+            status: 'active'
+        }
+    ];
+    
+    keysDiv.innerHTML = apiKeys.map(key => `
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">${key.name}</h6>
+                        <p class="text-muted mb-2">
+                            <code>${key.key}</code>
+                            <button class="btn btn-link btn-sm p-0 ms-2" onclick="copyToClipboard('${key.key}')">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </p>
+                        <div class="d-flex gap-2 mb-2">
+                            ${key.permissions.map(perm => `<span class="badge bg-secondary">${perm}</span>`).join('')}
+                            <span class="badge bg-${key.status === 'active' ? 'success' : 'danger'}">${key.status}</span>
+                        </div>
+                        <small class="text-muted">
+                            Создан: ${key.created} • Последнее использование: ${key.lastUsed}
+                        </small>
+                    </div>
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary btn-sm" data-bs-toggle="dropdown">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" onclick="regenerateApiKey('${key.id}')"><i class="fas fa-refresh me-2"></i>Перегенерировать</a></li>
+                            <li><a class="dropdown-item" href="#" onclick="editApiKey('${key.id}')"><i class="fas fa-edit me-2"></i>Редактировать</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="deleteApiKey('${key.id}')"><i class="fas fa-trash me-2"></i>Удалить</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function createApiKey() {
+    new bootstrap.Modal(document.getElementById('apiKeyModal')).show();
+}
+
+function generateApiKey() {
+    const form = document.getElementById('apiKeyForm');
+    
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const keyData = {
+        name: document.getElementById('keyName').value,
+        description: document.getElementById('keyDescription').value,
+        permissions: {
+            read: document.getElementById('permRead').checked,
+            write: document.getElementById('permWrite').checked,
+            admin: document.getElementById('permAdmin').checked
+        },
+        expiry: document.getElementById('keyExpiry').value
+    };
+    
+    // TODO: Send to API
+    showAlert('API ключ успешно создан!', 'success');
+    bootstrap.Modal.getInstance(document.getElementById('apiKeyModal')).hide();
+    form.reset();
+    loadApiKeys();
+}
+
+function deleteApiKey(keyId) {
+    if (confirm('Удалить этот API ключ? Это действие нельзя отменить.')) {
+        // TODO: Send to API
+        showAlert('API ключ удален', 'success');
+        loadApiKeys();
+    }
+}
+
+function regenerateApiKey(keyId) {
+    if (confirm('Перегенерировать API ключ? Старый ключ перестанет работать.')) {
+        // TODO: Send to API
+        showAlert('API ключ перегенерирован', 'success');
+        loadApiKeys();
+    }
+}
+
+function changeAvatar() {
+    new bootstrap.Modal(document.getElementById('avatarModal')).show();
+}
+
+function previewAvatar(file) {
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('avatarPreview').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+function selectAvatar(img) {
+    document.querySelectorAll('.avatar-option').forEach(option => {
+        option.classList.remove('border-primary');
+    });
+    img.classList.add('border-primary');
+    document.getElementById('avatarPreview').src = img.src;
+}
+
+function saveAvatar() {
+    const preview = document.getElementById('avatarPreview');
+    document.getElementById('profileAvatar').src = preview.src;
+    
+    // TODO: Upload to server
+    showAlert('Аватар обновлен!', 'success');
+    bootstrap.Modal.getInstance(document.getElementById('avatarModal')).hide();
+}
+
+function exportProfile() {
+    // TODO: Export profile data
+    showAlert('Экспорт данных профиля начат. Файл будет отправлен на email.', 'info');
+}
+
+function testNotification() {
+    // TODO: Send test notification
+    showAlert('Тестовое уведомление отправлено!', 'success');
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        showAlert('Скопировано в буфер обмена', 'success');
+    }).catch(() => {
+        showAlert('Ошибка копирования', 'error');
+    });
+}
+
+// Initialize on page load
+if (window.location.hash) {
+    const tabName = window.location.hash.substring(1);
+    switchTab(tabName, false);
+}
+</script>
+
+<style>
+.avatar-option {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.avatar-option:hover {
+    transform: scale(1.1);
+}
+
+.tab-content {
+    min-height: 400px;
+}
+
+.sticky-top {
+    z-index: 1020;
+}
+
+.list-group-item {
+    transition: all 0.2s;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+    padding-left: 1.5rem;
+}
+
+.list-group-item.active {
+    background-color: #e3f2fd;
+    border-color: #2196f3;
+    color: #1976d2;
+}
+
+.form-check-input:checked {
+    background-color: #2196f3;
+    border-color: #2196f3;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #6c757d;
+    border-color: #6c757d;
+}
+
+@media (max-width: 768px) {
+    .sticky-top {
+        position: relative !important;
+        top: auto !important;
+    }
+    
+    .d-flex.gap-2 {
+        flex-direction: column;
+        gap: 0.5rem !important;
+    }
+}
+</style>
+{% endblock %}

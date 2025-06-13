@@ -10,6 +10,13 @@ logger = logging.getLogger(__name__)
 # Telegram bot token
 TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
+# GitHub integration configuration
+GITHUB_TOKEN = os.getenv('GITHUB_TOKEN')
+GITHUB_USERNAME = os.getenv('GITHUB_USERNAME')
+GITHUB_REPO_NAME = os.getenv('GITHUB_REPO_NAME', 'devdatasorter-backup')
+GITHUB_AUTO_COMMIT = os.getenv('GITHUB_AUTO_COMMIT', 'true').lower() == 'true'
+GITHUB_SYNC_INTERVAL = int(os.getenv('GITHUB_SYNC_INTERVAL', '6'))
+
 # AI API configuration
 # Support for both Groq and Ollama APIs
 GROQ_API_KEY = os.getenv('GROQ_API_KEY')
@@ -48,6 +55,20 @@ def is_groq_available():
     """Check if Groq API is configured."""
     return bool(GROQ_API_KEY)
 
+def is_github_available():
+    """Check if GitHub integration is configured."""
+    return bool(GITHUB_TOKEN and GITHUB_USERNAME)
+
+def get_github_config():
+    """Get GitHub configuration."""
+    return {
+        'token': GITHUB_TOKEN,
+        'username': GITHUB_USERNAME,
+        'repo_name': GITHUB_REPO_NAME,
+        'auto_commit': GITHUB_AUTO_COMMIT,
+        'sync_interval': GITHUB_SYNC_INTERVAL
+    }
+
 def is_ollama_available():
     """Check if Ollama is available."""
     try:
@@ -83,6 +104,12 @@ def validate_config():
         issues.append("⚠️ AI API не настроен (используется базовая классификация)")
         issues.append("💡 Настройте Groq API или Ollama для улучшенной классификации")
     
+    # Check GitHub configuration
+    github_configured = is_github_available()
+    if not github_configured:
+        issues.append("⚠️ GitHub интеграция не настроена")
+        issues.append("💡 Настройте GITHUB_TOKEN и GITHUB_USERNAME для резервного копирования")
+    
     # AI recommendations
     if not ai_available:
         issues.extend([
@@ -103,6 +130,7 @@ def validate_config():
         'ai_provider': ai_config['provider'],
         'ollama_available': is_ollama_available(),
         'groq_available': is_groq_available(),
+        'github_configured': github_configured,
         'issues': issues
     }
 
@@ -143,6 +171,15 @@ def get_security_report():
         report.append("  • Groq API: доступен")
     if validation['ollama_available']:
         report.append("  • Ollama: доступен")
+    
+    # GitHub Status
+    report.append("")
+    report.append("💾 GitHub Интеграция:")
+    
+    if validation['github_configured']:
+        report.append("✅ GitHub: настроен и готов к работе")
+    else:
+        report.append("⚠️ GitHub: не настроен (резервное копирование недоступно)")
     
     if validation['issues']:
         report.append("")

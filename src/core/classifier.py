@@ -28,27 +28,137 @@ class ContentClassifier:
         else:
             logger.info(f"AI classifier initialized with provider: {self.provider}")
         
-        # Define content categories with improved keywords
+        # Define content categories optimized for web development
         self.categories = {
-            'documentation': ['docs', 'documentation', 'guide', 'tutorial', 'readme', 'manual', 'wiki', 'help', 'instructions'],
-            'code_examples': ['code', 'programming', 'script', 'function', 'class', 'algorithm', 'source', 'implementation', 'snippet'],
-            'tutorials': ['tutorial', 'guide', 'how-to', 'walkthrough', 'step-by-step', 'lesson', 'course'],
-            'videos': ['video', 'youtube', 'vimeo', 'watch', 'stream', 'recording'],
-            'mockups': ['mockup', 'wireframe', 'prototype', 'design', 'figma', 'sketch'],
-            'libraries': ['library', 'package', 'npm', 'pip', 'composer', 'dependency'],
-            'frameworks': ['framework', 'boilerplate', 'template', 'scaffold'],
-            'tools': ['tool', 'utility', 'software', 'application', 'plugin', 'extension'],
-            'articles': ['article', 'blog', 'post', 'news', 'story'],
-            'api': ['api', 'endpoint', 'rest', 'graphql', 'webhook', 'service', 'microservice', 'integration'],
-            'database': ['database', 'sql', 'query', 'schema', 'table', 'migration', 'mongodb', 'postgresql', 'mysql'],
-            'learning': ['course', 'tutorial', 'lesson', 'education', 'training', 'workshop', 'webinar', 'certification'],
-            'reference': ['reference', 'cheatsheet', 'quick', 'summary', 'overview', 'specification', 'standard'],
-            'design': ['design', 'ui', 'ux', 'mockup', 'wireframe', 'prototype', 'figma', 'sketch'],
-            'media': ['image', 'video', 'audio', 'photo', 'picture', 'screenshot', 'diagram', 'chart'],
-            'document': ['document', 'pdf', 'report', 'presentation', 'spreadsheet', 'text', 'file'],
-            'security': ['security', 'authentication', 'authorization', 'encryption', 'vulnerability', 'penetration'],
-            'devops': ['devops', 'deployment', 'ci/cd', 'docker', 'kubernetes', 'infrastructure', 'monitoring'],
-            'other': ['misc', 'general', 'various', 'other', 'uncategorized']
+            # Frontend Development
+            'frontend': {
+                'keywords': ['html', 'css', 'javascript', 'react', 'vue', 'angular', 'svelte', 'frontend', 'client-side', 'browser', 'dom', 'responsive', 'mobile-first'],
+                'description': 'Frontend technologies, frameworks, and client-side development'
+            },
+            'css_styling': {
+                'keywords': ['css', 'sass', 'scss', 'less', 'tailwind', 'bootstrap', 'styled-components', 'emotion', 'flexbox', 'grid', 'animation', 'transition'],
+                'description': 'CSS frameworks, styling libraries, and design systems'
+            },
+            'javascript': {
+                'keywords': ['javascript', 'js', 'typescript', 'ts', 'es6', 'es2015', 'vanilla', 'jquery', 'lodash', 'moment'],
+                'description': 'JavaScript libraries, utilities, and vanilla JS solutions'
+            },
+            'react_ecosystem': {
+                'keywords': ['react', 'jsx', 'next.js', 'gatsby', 'redux', 'mobx', 'react-router', 'hooks', 'context', 'component'],
+                'description': 'React framework, libraries, and ecosystem tools'
+            },
+            'vue_ecosystem': {
+                'keywords': ['vue', 'vuex', 'nuxt', 'vue-router', 'composition-api', 'pinia', 'quasar'],
+                'description': 'Vue.js framework, libraries, and ecosystem tools'
+            },
+            'angular_ecosystem': {
+                'keywords': ['angular', 'typescript', 'rxjs', 'ngrx', 'angular-cli', 'material', 'ionic'],
+                'description': 'Angular framework, libraries, and ecosystem tools'
+            },
+            
+            # Backend Development
+            'backend': {
+                'keywords': ['backend', 'server', 'api', 'rest', 'graphql', 'microservices', 'serverless', 'lambda', 'node.js', 'express', 'fastify'],
+                'description': 'Backend technologies, APIs, and server-side development'
+            },
+            'nodejs': {
+                'keywords': ['node.js', 'nodejs', 'npm', 'yarn', 'express', 'koa', 'fastify', 'nest.js', 'socket.io'],
+                'description': 'Node.js runtime, frameworks, and server-side JavaScript'
+            },
+            'python_web': {
+                'keywords': ['django', 'flask', 'fastapi', 'pyramid', 'tornado', 'python', 'wsgi', 'asgi'],
+                'description': 'Python web frameworks and server-side development'
+            },
+            'php_web': {
+                'keywords': ['php', 'laravel', 'symfony', 'codeigniter', 'wordpress', 'drupal', 'composer'],
+                'description': 'PHP frameworks and content management systems'
+            },
+            
+            # Database & Storage
+            'database': {
+                'keywords': ['database', 'sql', 'mysql', 'postgresql', 'mongodb', 'redis', 'elasticsearch', 'prisma', 'sequelize', 'mongoose'],
+                'description': 'Database systems, ORMs, and data storage solutions'
+            },
+            
+            # Development Tools
+            'build_tools': {
+                'keywords': ['webpack', 'vite', 'rollup', 'parcel', 'gulp', 'grunt', 'babel', 'esbuild', 'swc'],
+                'description': 'Build tools, bundlers, and development workflow'
+            },
+            'testing': {
+                'keywords': ['jest', 'mocha', 'chai', 'cypress', 'playwright', 'testing-library', 'vitest', 'unit-test', 'e2e'],
+                'description': 'Testing frameworks, tools, and methodologies'
+            },
+            'devops_web': {
+                'keywords': ['docker', 'kubernetes', 'ci/cd', 'github-actions', 'jenkins', 'vercel', 'netlify', 'aws', 'heroku'],
+                'description': 'DevOps tools, deployment, and infrastructure for web development'
+            },
+            
+            # Design & UI/UX
+            'ui_design': {
+                'keywords': ['ui', 'ux', 'design-system', 'figma', 'sketch', 'adobe-xd', 'wireframe', 'prototype', 'mockup'],
+                'description': 'UI/UX design, design systems, and prototyping tools'
+            },
+            'icons_assets': {
+                'keywords': ['icons', 'svg', 'fonts', 'images', 'assets', 'illustrations', 'graphics', 'logo'],
+                'description': 'Icons, fonts, images, and visual assets'
+            },
+            
+            # Learning Resources
+            'tutorials': {
+                'keywords': ['tutorial', 'guide', 'how-to', 'walkthrough', 'step-by-step', 'lesson', 'course', 'learning'],
+                'description': 'Educational content, tutorials, and learning materials'
+            },
+            'videos': {
+                'keywords': ['video', 'youtube', 'vimeo', 'watch', 'stream', 'recording', 'webinar', 'conference'],
+                'description': 'Video content, tutorials, and educational streams'
+            },
+            'documentation': {
+                'keywords': ['docs', 'documentation', 'api-docs', 'readme', 'manual', 'wiki', 'reference', 'specification'],
+                'description': 'Documentation, API references, and technical guides'
+            },
+            
+            # Code Resources
+            'code_snippets': {
+                'keywords': ['snippet', 'code', 'example', 'gist', 'codepen', 'jsfiddle', 'sandbox', 'playground'],
+                'description': 'Code snippets, examples, and interactive demos'
+            },
+            'templates': {
+                'keywords': ['template', 'boilerplate', 'starter', 'scaffold', 'theme', 'layout', 'component-library'],
+                'description': 'Project templates, boilerplates, and starter kits'
+            },
+            'libraries': {
+                'keywords': ['library', 'package', 'npm', 'yarn', 'cdn', 'plugin', 'extension', 'module'],
+                'description': 'Third-party libraries, packages, and plugins'
+            },
+            
+            # Specialized
+            'animation': {
+                'keywords': ['animation', 'gsap', 'framer-motion', 'lottie', 'three.js', 'webgl', 'canvas', 'svg-animation'],
+                'description': 'Animation libraries, WebGL, and interactive graphics'
+            },
+            'performance': {
+                'keywords': ['performance', 'optimization', 'lighthouse', 'web-vitals', 'lazy-loading', 'caching', 'compression'],
+                'description': 'Performance optimization, monitoring, and best practices'
+            },
+            'security': {
+                'keywords': ['security', 'authentication', 'authorization', 'jwt', 'oauth', 'cors', 'csrf', 'xss'],
+                'description': 'Web security, authentication, and security best practices'
+            },
+            
+            # General
+            'articles': {
+                'keywords': ['article', 'blog', 'post', 'news', 'story', 'opinion', 'review'],
+                'description': 'Articles, blog posts, and technical writing'
+            },
+            'tools': {
+                'keywords': ['tool', 'utility', 'software', 'application', 'extension', 'addon', 'helper'],
+                'description': 'Development tools, utilities, and productivity software'
+            },
+            'other': {
+                'keywords': ['misc', 'general', 'various', 'other', 'uncategorized'],
+                'description': 'Miscellaneous content that doesn\'t fit other categories'
+            }
         }
     
     async def classify_content(self, content: str, urls: list = None) -> dict:
@@ -199,14 +309,19 @@ class ContentClassifier:
             raise e
     
     def _create_classification_prompt(self, content: str) -> str:
-        """Create classification prompt for Ollama."""
-        categories_text = "\n".join([f"- {cat}: {desc}" for cat, desc in self.categories.items()])
+        """Create enhanced classification prompt optimized for web development."""
+        categories_info = []
+        for category, info in self.categories.items():
+            keywords = ', '.join(info['keywords'][:8])  # Limit keywords for prompt size
+            categories_info.append(f"- {category}: {info['description']} (keywords: {keywords}...)")
         
-        prompt = f"""\nAnalyze the following developer resource content and classify it into one of these categories:\n\n{categories_text}\n\nContent to analyze:\n{content}\n\nProvide your response in JSON format with these fields:\n- "category": the most appropriate category from the list above\n- "subcategory": a more specific subcategory if applicable (optional)\n- "confidence": confidence score from 0.0 to 1.0\n- "description": brief description of the content (max 100 chars)\n- "programming_languages": list of detected programming languages (if any)\n- "topics": list of main topics/keywords (max 5)\n\nExample response:\n{{\n    "category": "code_examples",\n    "subcategory": "python_scripts",\n    "confidence": 0.95,\n    "description": "Python script for data processing",\n    "programming_languages": ["python"],\n    "topics": ["data processing", "pandas", "automation"]\n}}\n\nRespond with JSON only, no additional text.\n        """
+        categories_text = '\n'.join(categories_info)
+        
+        prompt = f"""\nAnalyze the following developer resource content and classify it into one of these categories:\n\n{categories_text}\n\nCLASSIFICATION GUIDELINES:\n1. Prioritize web development technologies (frontend, backend, databases)\n2. Consider the primary purpose and target audience of the content\n3. Look for specific technology mentions, frameworks, and tools\n4. Distinguish between learning resources (tutorials, videos) and practical resources (code, tools)\n5. For mixed content, choose the most prominent or useful aspect\n\nEXAMPLES:\n- "React hooks tutorial" → react_ecosystem (not tutorials, as React is more specific)\n- "CSS Grid complete guide" → css_styling (specific CSS technology)\n- "Node.js REST API example" → nodejs (backend technology focus)\n- "Figma design system" → ui_design (design tool focus)\n- "JavaScript performance optimization" → performance (optimization focus)\n\nContent to analyze:\n{content}\n\nProvide your response in JSON format with these fields:\n- "category": the most appropriate category from the list above\n- "subcategory": a more specific subcategory if applicable (optional)\n- "confidence": confidence score from 0.0 to 1.0 (be conservative, use 0.7+ only for clear matches)\n- "description": brief description of the content (max 100 chars)\n- "programming_languages": list of detected programming languages (if any)\n- "topics": list of main topics/keywords (max 5)\n- "technology_stack": array of specific technologies mentioned (e.g., ["React", "TypeScript", "Node.js"])\n\nExample response:\n{{\n    "category": "react_ecosystem",\n    "subcategory": "hooks",\n    "confidence": 0.85,\n    "description": "React hooks tutorial with practical examples",\n    "programming_languages": ["javascript"],\n    "topics": ["react", "hooks", "tutorial", "frontend", "components"],\n    "technology_stack": ["React", "JavaScript"]\n}}\n\nRespond with JSON only, no additional text.\n        """
         return prompt
     
     def _validate_classification(self, result: dict) -> dict:
-        """Validate and clean classification result."""
+        """Validate and clean classification result with enhanced validation."""
         if not result or not isinstance(result, dict):
             return None
         
@@ -227,19 +342,36 @@ class ContentClassifier:
         if confidence < 0.5:
             cleaned_result['low_confidence'] = True
         
-        # Optional fields
+        # Optional fields with enhanced validation
         if result.get('subcategory'):
             cleaned_result['subcategory'] = str(result['subcategory'])[:50]
         
         if result.get('programming_languages'):
             langs = result['programming_languages']
             if isinstance(langs, list):
-                cleaned_result['programming_languages'] = langs[:5]
+                # Clean and normalize programming languages
+                cleaned_langs = [lang.lower().strip() for lang in langs if isinstance(lang, str)][:5]
+                if cleaned_langs:
+                    cleaned_result['programming_languages'] = cleaned_langs
         
         if result.get('topics'):
             topics = result['topics']
             if isinstance(topics, list):
-                cleaned_result['topics'] = topics[:5]
+                # Clean and normalize topics
+                cleaned_topics = [topic.lower().strip() for topic in topics if isinstance(topic, str)][:5]
+                if cleaned_topics:
+                    cleaned_result['topics'] = cleaned_topics
+        
+        if result.get('technology_stack'):
+            tech_stack = result['technology_stack']
+            if isinstance(tech_stack, list):
+                # Clean and normalize technology stack
+                cleaned_tech = [tech.strip() for tech in tech_stack if isinstance(tech, str)][:8]
+                if cleaned_tech:
+                    cleaned_result['technology_stack'] = cleaned_tech
+        
+        if result.get('reasoning'):
+            cleaned_result['reasoning'] = str(result['reasoning'])[:200]
         
         return cleaned_result
     
@@ -247,89 +379,203 @@ class ContentClassifier:
         """Enhanced fallback classification using text patterns."""
         content_lower = content.lower()
         
-        # Code patterns (enhanced)
-        code_patterns = [
-            r'def\s+\w+\s*\(',  # Python functions
-            r'function\s+\w+\s*\(',  # JavaScript functions
-            r'class\s+\w+',  # Class definitions
-            r'import\s+\w+',  # Import statements
-            r'#include\s*<\w+>',  # C/C++ includes
-            r'```[\w]*\n',  # Code blocks
-            r'<\w+[^>]*>.*</\w+>',  # HTML tags
-            r'{\s*["\w]+\s*:\s*["\w]+',  # JSON objects
-            r'public\s+class\s+\w+',  # Java classes
-            r'const\s+\w+\s*=',  # JavaScript const
-            r'var\s+\w+\s*=',  # Variable declarations
-            r'\$\w+\s*=',  # PHP variables
-        ]
+        # Score each category based on keyword matches with weighted scoring
+        category_scores = {}
         
-        # Code repository patterns
-        code_repo_keywords = ['github.com', 'gitlab.com', 'bitbucket.org', 'repository', 'repo', 'source code', 'git clone']
+        for category, category_info in self.categories.items():
+            keywords = category_info['keywords']
+            score = 0
+            
+            for keyword in keywords:
+                keyword_lower = keyword.lower()
+                if keyword_lower in content_lower:
+                    # Weight scoring based on keyword specificity
+                    weight = self._get_keyword_weight(keyword_lower)
+                    score += weight
+            
+            if score > 0:
+                category_scores[category] = score
         
-        # Programming language keywords
-        programming_languages = ['python', 'javascript', 'java', 'cpp', 'c++', 'php', 'ruby', 'go', 'rust', 'swift', 'kotlin', 'typescript', 'react', 'vue', 'angular', 'node.js', 'django', 'flask', 'spring']
+        if not category_scores:
+            return 'other'
         
-        # Check for code patterns first
-        if any(re.search(pattern, content, re.IGNORECASE) for pattern in code_patterns):
-            return 'code_examples'
+        # Find the category with the highest score
+        best_category = max(category_scores.keys(), key=lambda k: category_scores[k])
         
-        # Check for code repositories
-        if any(keyword in content_lower for keyword in code_repo_keywords):
-            return 'code_examples'
+        return best_category
+    
+    def _get_keyword_weight(self, keyword: str) -> float:
+        """Calculate weight for keyword based on specificity."""
+        # More specific technology keywords get higher weight
+        high_weight_keywords = {
+            'react', 'vue', 'angular', 'svelte', 'next.js', 'nuxt', 'gatsby',
+            'typescript', 'javascript', 'python', 'php', 'node.js',
+            'mongodb', 'postgresql', 'mysql', 'redis',
+            'webpack', 'vite', 'docker', 'kubernetes',
+            'figma', 'sketch', 'tailwind', 'bootstrap'
+        }
         
-        # Video patterns (enhanced) - check first
-        video_keywords = ['youtube.com', 'vimeo.com', 'youtu.be', 'video', 'watch', 'видео', 'смотреть']
-        video_domains = ['youtube.com', 'youtu.be', 'vimeo.com', 'twitch.tv']
-        if any(keyword in content_lower for keyword in video_keywords) or any(domain in content_lower for domain in video_domains):
-            return 'videos'
+        medium_weight_keywords = {
+            'frontend', 'backend', 'api', 'database', 'css', 'html',
+            'tutorial', 'guide', 'documentation', 'testing'
+        }
         
-        # Tutorial patterns (enhanced) - check before programming languages
-        tutorial_keywords = ['tutorial', 'туториале', 'how to', 'step by step', 'guide', 'learn', 'course', 'урок', 'обучение', 'пошагово', 'руководство']
-        if any(keyword in content_lower for keyword in tutorial_keywords):
-            return 'tutorials'
-        
-        # Check for programming languages - only if not already classified as tutorial
-        if any(lang in content_lower for lang in programming_languages):
-            return 'code_examples'
-        
-        # Documentation patterns (enhanced)
-        doc_keywords = ['documentation', 'docs', 'api reference', 'manual', 'readme', 'документация', 'справочник']
-        if any(keyword in content_lower for keyword in doc_keywords):
-            return 'documentation'
-        
-        # Design/Mockup patterns
-        design_keywords = ['figma', 'sketch', 'adobe', 'design', 'mockup', 'wireframe', 'prototype', 'ui', 'ux', 'дизайн', 'макет']
-        if any(keyword in content_lower for keyword in design_keywords):
-            return 'mockups'
-        
-        # Library patterns
-        library_keywords = ['library', 'package', 'npm', 'pip install', 'composer', 'библиотека', 'пакет']
-        if any(keyword in content_lower for keyword in library_keywords):
-            return 'libraries'
-        
-        # Framework patterns
-        framework_keywords = ['framework', 'boilerplate', 'template', 'фреймворк', 'шаблон']
-        frameworks = ['react', 'vue', 'angular', 'django', 'flask', 'spring', 'laravel', 'express']
-        if any(keyword in content_lower for keyword in framework_keywords) or any(fw in content_lower for fw in frameworks):
-            return 'frameworks'
-        
-        # Tool patterns (enhanced)
-        tool_keywords = ['tool', 'utility', 'software', 'application', 'download', 'инструмент', 'утилита', 'программа']
-        if any(keyword in content_lower for keyword in tool_keywords):
-            return 'tools'
-        
-        # Article patterns
-        article_keywords = ['article', 'blog', 'post', 'статья', 'блог']
-        if any(keyword in content_lower for keyword in article_keywords):
-            return 'articles'
-        
-        return 'other'
+        if keyword in high_weight_keywords:
+            return 3.0
+        elif keyword in medium_weight_keywords:
+            return 2.0
+        else:
+            return 1.0
     
     def get_subcategory_for_pattern(self, content: str, category: str) -> str:
-        """Determine subcategory based on content patterns."""
+        """Get more specific subcategory based on content patterns for web development."""
         content_lower = content.lower()
         
-        if category == 'code_examples':
+        # Frontend subcategories
+        if category == 'frontend':
+            if any(word in content_lower for word in ['responsive', 'mobile-first', 'breakpoint']):
+                return 'responsive_design'
+            elif any(word in content_lower for word in ['component', 'ui-component']):
+                return 'components'
+            elif any(word in content_lower for word in ['spa', 'single-page']):
+                return 'spa'
+        
+        elif category == 'css_styling':
+            if any(word in content_lower for word in ['flexbox', 'flex']):
+                return 'flexbox'
+            elif any(word in content_lower for word in ['grid', 'css-grid']):
+                return 'css_grid'
+            elif any(word in content_lower for word in ['animation', 'transition']):
+                return 'animations'
+            elif any(word in content_lower for word in ['sass', 'scss']):
+                return 'preprocessors'
+        
+        elif category == 'javascript':
+            if any(word in content_lower for word in ['es6', 'es2015', 'arrow-function']):
+                return 'modern_js'
+            elif any(word in content_lower for word in ['async', 'await', 'promise']):
+                return 'async_programming'
+            elif any(word in content_lower for word in ['dom', 'manipulation']):
+                return 'dom_manipulation'
+        
+        elif category == 'react_ecosystem':
+            if any(word in content_lower for word in ['hooks', 'usestate', 'useeffect']):
+                return 'hooks'
+            elif any(word in content_lower for word in ['redux', 'state-management']):
+                return 'state_management'
+            elif any(word in content_lower for word in ['next.js', 'nextjs']):
+                return 'nextjs'
+            elif any(word in content_lower for word in ['testing', 'jest', 'react-testing-library']):
+                return 'testing'
+        
+        elif category == 'vue_ecosystem':
+            if any(word in content_lower for word in ['composition-api', 'composition']):
+                return 'composition_api'
+            elif any(word in content_lower for word in ['vuex', 'pinia']):
+                return 'state_management'
+            elif any(word in content_lower for word in ['nuxt', 'nuxtjs']):
+                return 'nuxtjs'
+        
+        elif category == 'angular_ecosystem':
+            if any(word in content_lower for word in ['component', 'directive']):
+                return 'components'
+            elif any(word in content_lower for word in ['service', 'dependency-injection']):
+                return 'services'
+            elif any(word in content_lower for word in ['rxjs', 'observable']):
+                return 'rxjs'
+        
+        # Backend subcategories
+        elif category == 'backend':
+            if any(word in content_lower for word in ['rest', 'restful']):
+                return 'rest_api'
+            elif any(word in content_lower for word in ['graphql']):
+                return 'graphql'
+            elif any(word in content_lower for word in ['microservices', 'microservice']):
+                return 'microservices'
+            elif any(word in content_lower for word in ['serverless', 'lambda']):
+                return 'serverless'
+        
+        elif category == 'nodejs':
+            if any(word in content_lower for word in ['express', 'expressjs']):
+                return 'express'
+            elif any(word in content_lower for word in ['nest', 'nestjs']):
+                return 'nestjs'
+            elif any(word in content_lower for word in ['socket', 'websocket']):
+                return 'realtime'
+        
+        elif category == 'database':
+            if any(word in content_lower for word in ['mongodb', 'mongo']):
+                return 'mongodb'
+            elif any(word in content_lower for word in ['postgresql', 'postgres']):
+                return 'postgresql'
+            elif any(word in content_lower for word in ['mysql']):
+                return 'mysql'
+            elif any(word in content_lower for word in ['redis']):
+                return 'redis'
+            elif any(word in content_lower for word in ['prisma', 'orm']):
+                return 'orm'
+        
+        # Development tools subcategories
+        elif category == 'build_tools':
+            if any(word in content_lower for word in ['webpack']):
+                return 'webpack'
+            elif any(word in content_lower for word in ['vite']):
+                return 'vite'
+            elif any(word in content_lower for word in ['rollup']):
+                return 'rollup'
+        
+        elif category == 'testing':
+            if any(word in content_lower for word in ['jest']):
+                return 'jest'
+            elif any(word in content_lower for word in ['cypress']):
+                return 'cypress'
+            elif any(word in content_lower for word in ['playwright']):
+                return 'playwright'
+            elif any(word in content_lower for word in ['unit', 'unit-test']):
+                return 'unit_testing'
+            elif any(word in content_lower for word in ['e2e', 'end-to-end']):
+                return 'e2e_testing'
+        
+        elif category == 'devops_web':
+            if any(word in content_lower for word in ['docker']):
+                return 'docker'
+            elif any(word in content_lower for word in ['kubernetes', 'k8s']):
+                return 'kubernetes'
+            elif any(word in content_lower for word in ['ci/cd', 'github-actions']):
+                return 'ci_cd'
+            elif any(word in content_lower for word in ['vercel', 'netlify']):
+                return 'hosting'
+        
+        # Design subcategories
+        elif category == 'ui_design':
+            if any(word in content_lower for word in ['figma']):
+                return 'figma'
+            elif any(word in content_lower for word in ['design-system', 'design system']):
+                return 'design_systems'
+            elif any(word in content_lower for word in ['wireframe']):
+                return 'wireframing'
+            elif any(word in content_lower for word in ['prototype']):
+                return 'prototyping'
+        
+        # Learning subcategories
+        elif category == 'tutorials':
+            if any(word in content_lower for word in ['beginner', 'basics', 'introduction']):
+                return 'beginner'
+            elif any(word in content_lower for word in ['advanced', 'expert']):
+                return 'advanced'
+            elif any(word in content_lower for word in ['project', 'build']):
+                return 'project_based'
+        
+        elif category == 'videos':
+            if any(word in content_lower for word in ['course', 'series']):
+                return 'course'
+            elif any(word in content_lower for word in ['conference', 'talk']):
+                return 'conference'
+            elif any(word in content_lower for word in ['live', 'stream']):
+                return 'live_stream'
+        
+        # Legacy fallback patterns
+        elif category == 'code_snippets':
             # Python patterns
             if any(pattern in content_lower for pattern in ['def ', 'import ', 'python', '.py']):
                 return 'python_scripts'
@@ -345,19 +591,6 @@ class ContentClassifier:
             else:
                 return 'general_code'
                 
-        elif category == 'tutorials':
-            # Web development tutorials
-            if any(pattern in content_lower for pattern in ['веб', 'web', 'сайт', 'website', 'html', 'css']):
-                return 'web_development'
-            # Git/Version control tutorials
-            elif any(pattern in content_lower for pattern in ['git', 'github', 'версий', 'version control']):
-                return 'version_control'
-            # Python tutorials
-            elif any(pattern in content_lower for pattern in ['python', 'pandas', 'numpy']):
-                return 'python_tutorial'
-            else:
-                return 'general_tutorial'
-                
         elif category == 'documentation':
             # API documentation
             if any(pattern in content_lower for pattern in ['api', 'endpoint', 'get /', 'post /']):
@@ -368,20 +601,11 @@ class ContentClassifier:
             else:
                 return 'general_docs'
                 
-        elif category == 'videos':
-            return 'video_content'
-            
-        elif category == 'mockups':
-            return 'ui_design'
-            
         elif category == 'tools':
             return 'development_tools'
             
         elif category == 'libraries':
             return 'code_libraries'
-            
-        elif category == 'frameworks':
-            return 'dev_frameworks'
             
         elif category == 'articles':
             return 'tech_articles'

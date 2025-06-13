@@ -61,13 +61,27 @@ def resources():
     page = request.args.get('page', 1, type=int)
     category = request.args.get('category', '')
     search_query = request.args.get('search', '')
+    date_from = request.args.get('date_from', '')
+    date_to = request.args.get('date_to', '')
     
     per_page = 20
     
     if search_query:
-        resources_list = storage.search_resources(search_query)
-    elif category:
-        resources_list = storage.get_resources_by_category(category)
+        resources_list = storage.search_resources(
+            search_query, 
+            category_filter=category if category else None,
+            date_from=date_from if date_from else None,
+            date_to=date_to if date_to else None
+        )
+    elif category or date_from or date_to:
+        # Get all resources and apply filters
+        all_resources = storage.get_all_resources()
+        resources_list = storage._apply_filters(
+            all_resources, 
+            category_filter=category if category else None,
+            date_from=date_from if date_from else None,
+            date_to=date_to if date_to else None
+        )
     else:
         resources_list = storage.get_all_resources()
     
@@ -86,15 +100,19 @@ def resources():
                          current_page=page,
                          total_pages=total_pages,
                          current_category=category,
-                         search_query=search_query)
+                         search_query=search_query,
+                         date_from=date_from,
+                         date_to=date_to)
 
 @app.route('/api/resources/<resource_id>', methods=['DELETE'])
 def delete_resource(resource_id):
     """Delete a resource via API."""
     try:
-        # Note: storage.py doesn't have delete method, would need to add it
-        # For now, return success
-        return jsonify({'success': True, 'message': 'Resource deleted'})
+        success = storage.delete_resource(resource_id)
+        if success:
+            return jsonify({'success': True, 'message': 'Resource deleted successfully'})
+        else:
+            return jsonify({'success': False, 'error': 'Resource not found'}), 404
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -203,6 +221,35 @@ def add_resource():
             'message': 'Resource added successfully',
             'resource_id': resource_id,
             'category': category
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/search', methods=['GET'])
+def api_search():
+    """Search resources via API with filters."""
+    try:
+        query = request.args.get('q', '')
+        category = request.args.get('category', '')
+        date_from = request.args.get('date_from', '')
+        date_to = request.args.get('date_to', '')
+        use_semantic = request.args.get('semantic', 'true').lower() == 'true'
+        
+        if not query:
+            return jsonify({'success': False, 'error': 'Query parameter is required'}), 400
+        
+        results = storage.search_resources(
+            query,
+            use_semantic=use_semantic,
+            category_filter=category if category else None,
+            date_from=date_from if date_from else None,
+            date_to=date_to if date_to else None
+        )
+        
+        return jsonify({
+            'success': True,
+            'results': results,
+            'count': len(results)
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -373,6 +420,157 @@ def create_templates():
     
     with open(os.path.join(templates_dir, 'dashboard.html'), 'w', encoding='utf-8') as f:
         f.write(dashboard_template)
+    
+    # Resources template with filters
+    resources_template = '''
+{% extends "base.html" %}
+{% block title %}Resources - DevDataSorter{% endblock %}
+{% block content %}
+<div class="container mt-4">
+    <h1><i class="fas fa-database"></i> Resources</h1>
+    
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5><i class="fas fa-filter"></i> Filters</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('resources') }}">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Search Query</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               value="{{ search_query }}" placeholder="Enter search terms...">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="category" class="form-label">Category</label>
+                        <select class="form-select" id="category" name="category">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat }}" {% if cat == current_category %}selected{% endif %}>
+                                    {{ cat }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="date_from" class="form-label">Date From</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from" 
+                               value="{{ date_from }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="date_to" class="form-label">Date To</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to" 
+                               value="{{ date_to }}">
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search"></i> Filter
+                        </button>
+                        <a href="{{ url_for('resources') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Clear
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Resources List -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5>Resources ({{ resources|length }} found)</h5>
+            <button class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#addResourceModal">
+                <i class="fas fa-plus"></i> Add Resource
+            </button>
+        </div>
+        <div class="card-body">
+            {% if resources %}
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Content</th>
+                                <th>Category</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for resource in resources %}
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">{{ resource.content[:100] }}...</div>
+                                        {% if resource.description %}
+                                            <small class="text-muted">{{ resource.description[:150] }}...</small>
+                                        {% endif %}
+                                    </td>
+                                    <td><span class="badge bg-info">{{ resource.category }}</span></td>
+                                    <td>{{ resource.timestamp }}</td>
+                                    <td>
+                                        <button class="btn btn-danger btn-sm" 
+                                                onclick="deleteResource('{{ resource.id }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if total_pages > 1 %}
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center">
+                            {% for page_num in range(1, total_pages + 1) %}
+                                <li class="page-item {% if page_num == current_page %}active{% endif %}">
+                                    <a class="page-link" href="{{ url_for('resources', page=page_num, 
+                                       category=current_category, search=search_query, 
+                                       date_from=date_from, date_to=date_to) }}">
+                                        {{ page_num }}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-4">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No resources found</h5>
+                    <p class="text-muted">Try adjusting your filters or add some resources.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+function deleteResource(resourceId) {
+    if (confirm('Are you sure you want to delete this resource?')) {
+        fetch(`/api/resources/${resourceId}`, {
+            method: 'DELETE'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting resource: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting resource: ' + error);
+        });
+    }
+}
+</script>
+{% endblock %}
+    '''
+    
+    with open(os.path.join(templates_dir, 'resources.html'), 'w', encoding='utf-8') as f:
+        f.write(resources_template)
 
 def run_web_interface(host='127.0.0.1', port=5000, debug=True):
     """Run the web interface."""
