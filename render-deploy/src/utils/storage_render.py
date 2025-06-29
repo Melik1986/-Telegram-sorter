@@ -9,33 +9,18 @@ from datetime import datetime
 from typing import Dict, List, Optional, Set, Tuple
 import uuid
 
-# Попытка импорта семантического поиска
-try:
-    from .semantic_search_render import SemanticSearchEngine
-    SEMANTIC_SEARCH_AVAILABLE = True
-except ImportError:
-    SEMANTIC_SEARCH_AVAILABLE = False
-    logger = logging.getLogger(__name__)
-    logger.warning("Semantic search dependencies not available")
-
 logger = logging.getLogger(__name__)
 
 class ResourceStorage:
-    def __init__(self, enable_semantic_search: bool = True):
+    def __init__(self, enable_semantic_search: bool = False):
         """Инициализация хранилища для Render."""
         self.resources = {}  # Dict[str, Dict] - resource_id -> resource_data
         self.categories = {}  # Dict[str, List[str]] - category -> list of resource_ids
         self.search_index = {}  # Dict[str, Set[str]] - keyword -> set of resource_ids
         
-        # Инициализация семантического поиска если доступно
+        # Семантический поиск отключен для стабильности
         self.semantic_search_engine = None
-        if enable_semantic_search and SEMANTIC_SEARCH_AVAILABLE:
-            try:
-                self.semantic_search_engine = SemanticSearchEngine()
-                logger.info("Semantic search engine initialized")
-            except Exception as e:
-                logger.error(f"Failed to initialize semantic search: {e}")
-                self.semantic_search_engine = None
+        logger.info("Storage initialized without semantic search for stability")
     
     def add_resource(self, content: str, category: str, user_id: int, 
                     username: str = None, confidence: float = 0.0, 
@@ -70,13 +55,6 @@ class ResourceStorage:
         self._update_search_index(resource_id, content, description, category, 
                                  kwargs.get('subcategory'))
         
-        # Добавить в семантический поиск если доступен
-        if self.semantic_search_engine:
-            try:
-                self.semantic_search_engine.add_resource(resource_id, resource)
-            except Exception as e:
-                logger.error(f"Failed to add resource to semantic search: {e}")
-        
         return resource_id
     
     def _generate_id(self) -> str:
@@ -103,20 +81,20 @@ class ResourceStorage:
         all_resources = list(self.resources.values())
         return sorted(all_resources, key=lambda x: x['timestamp'], reverse=True)
     
-    def search_resources(self, query: str, use_semantic: bool = True, 
+    def search_resources(self, query: str, use_semantic: bool = False, 
                         semantic_weight: float = 0.7, category_filter: str = None, 
                         date_from: str = None, date_to: str = None) -> List[Dict]:
-        """Поиск ресурсов с комбинированием текстового и семантического поиска."""
-        # Текстовый поиск
+        """Поиск ресурсов (только текстовый поиск)."""
+        # Только текстовый поиск
         text_results = self._text_search(query)
         
-        # Семантический поиск если доступен
-        semantic_results = []
-        if use_semantic and self.semantic_search_engine:
-            semantic_results = self._semantic_search(query)
-        
-        # Объединение результатов
-        results = self._combine_search_results(text_results, semantic_results, semantic_weight)
+        # Преобразование результатов
+        results = []
+        for resource_id, score in text_results:
+            if resource_id in self.resources:
+                resource = self.resources[resource_id].copy()
+                resource['search_score'] = score
+                results.append(resource)
         
         # Применение фильтров
         if category_filter or date_from or date_to:
@@ -154,69 +132,6 @@ class ResourceStorage:
         
         return results
     
-    def _semantic_search(self, query: str) -> List[Tuple[str, float]]:
-        """Семантический поиск."""
-        try:
-            return self.semantic_search_engine.search(query, top_k=20, min_similarity=0.3)
-        except Exception as e:
-            logger.error(f"Semantic search failed: {e}")
-            return []
-    
-    def _combine_search_results(self, text_results: List[Tuple[str, float]], 
-                               semantic_results: List[Tuple[str, float]], 
-                               semantic_weight: float) -> List[Dict]:
-        """Объединение результатов поиска."""
-        combined_scores = {}
-        
-        # Добавить оценки текстового поиска
-        text_weight = 1.0 - semantic_weight
-        for resource_id, score in text_results:
-            combined_scores[resource_id] = text_weight * score
-        
-        # Добавить оценки семантического поиска
-        for resource_id, score in semantic_results:
-            if resource_id in combined_scores:
-                combined_scores[resource_id] += semantic_weight * score
-            else:
-                combined_scores[resource_id] = semantic_weight * score
-        
-        # Сортировка по общей оценке
-        sorted_ids = sorted(combined_scores.keys(), 
-                           key=lambda x: combined_scores[x], 
-                           reverse=True)
-        
-        # Возврат объектов ресурсов
-        results = []
-        for resource_id in sorted_ids:
-            if resource_id in self.resources:
-                resource = self.resources[resource_id].copy()
-                resource['search_score'] = combined_scores[resource_id]
-                results.append(resource)
-        
-        return results
-    
-    async def semantic_search_resources(self, query: str, limit: int = 10) -> List[Dict]:
-        """Чистый семантический поиск."""
-        if not self.semantic_search_engine:
-            logger.warning("Semantic search not available")
-            return []
-        
-        try:
-            semantic_results = self.semantic_search_engine.search(query, top_k=limit)
-            results = []
-            
-            for resource_id, similarity in semantic_results:
-                if resource_id in self.resources:
-                    resource = self.resources[resource_id].copy()
-                    resource['similarity_score'] = similarity
-                    results.append(resource)
-            
-            return results
-            
-        except Exception as e:
-            logger.error(f"Semantic search failed: {e}")
-            return []
-    
     def get_categories(self) -> Dict[str, int]:
         """Получить все категории с количеством ресурсов."""
         return {category: len(resource_ids) for category, resource_ids in self.categories.items()}
@@ -240,29 +155,14 @@ class ResourceStorage:
             total_confidence = sum(r.get('confidence', 0) for r in self.resources.values())
             avg_confidence = total_confidence / total_resources
         
-        # Статистика файлов
-        file_resources = sum(1 for r in self.resources.values() if r.get('file_type'))
-        
-        # Статистика семантического поиска
-        semantic_stats = {}
-        if self.semantic_search_engine:
-            try:
-                semantic_stats = self.semantic_search_engine.get_stats()
-            except Exception as e:
-                logger.error(f"Failed to get semantic search stats: {e}")
-        
         stats = {
             'total_resources': total_resources,
             'categories_count': categories_count,
             'popular_category': popular_category,
             'average_confidence': avg_confidence,
             'total_urls': sum(len(r.get('urls', [])) for r in self.resources.values()),
-            'file_resources': file_resources,
-            'semantic_search_enabled': self.semantic_search_engine is not None
+            'semantic_search_enabled': False
         }
-        
-        if semantic_stats:
-            stats['semantic_search'] = semantic_stats
         
         return stats
     
@@ -311,13 +211,6 @@ class ResourceStorage:
         # Очистить пустые записи в поисковом индексе
         self.search_index = {k: v for k, v in self.search_index.items() if v}
         
-        # Удалить из семантического поиска
-        if self.semantic_search_engine:
-            try:
-                self.semantic_search_engine.remove_resource(resource_id)
-            except Exception as e:
-                logger.error(f"Failed to remove resource from semantic search: {e}")
-        
         logger.info(f"Deleted resource {resource_id}")
         return True
     
@@ -327,7 +220,7 @@ class ResourceStorage:
             'resources': self.resources,
             'categories': self.categories,
             'timestamp': datetime.now().isoformat(),
-            'version': 'render-full'
+            'version': 'render-optimized'
         }
         return json.dumps(export_data, indent=2, ensure_ascii=False)
     

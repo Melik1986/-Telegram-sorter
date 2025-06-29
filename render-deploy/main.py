@@ -9,6 +9,7 @@ import os
 import sys
 import asyncio
 from pathlib import Path
+from flask import Flask
 
 # Добавляем src в путь
 sys.path.insert(0, str(Path(__file__).parent / 'src'))
@@ -32,6 +33,31 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+# Создаем простой Flask app для health check
+app = Flask(__name__)
+
+@app.route('/health')
+def health_check():
+    """Health check endpoint для Render."""
+    return {'status': 'healthy', 'service': 'devdatasorter-bot'}, 200
+
+@app.route('/')
+def index():
+    """Главная страница."""
+    return {
+        'service': 'DevDataSorter Bot',
+        'status': 'running',
+        'version': 'render-full'
+    }, 200
+
+def run_bot():
+    """Запуск бота в отдельном потоке."""
+    try:
+        bot = DevDataSorterBot()
+        bot.run()
+    except Exception as e:
+        logger.error(f"Bot error: {e}")
 
 def main():
     """Главная функция для Render."""
@@ -59,17 +85,14 @@ def main():
     
     logger.info("🤖 Запуск бота...")
     
-    try:
-        bot = DevDataSorterBot()
-        
-        # Запуск в асинхронном режиме для лучшей производительности
-        asyncio.run(bot.run_async())
-        
-    except KeyboardInterrupt:
-        logger.info("⏹️ Бот остановлен")
-    except Exception as e:
-        logger.error(f"❌ Критическая ошибка: {e}")
-        raise
+    # Запуск бота в отдельном потоке
+    import threading
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    
+    # Запуск Flask для health checks
+    logger.info(f"🌐 Запуск веб-сервера на порту {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 if __name__ == '__main__':
     main()

@@ -2,7 +2,9 @@ services:
   - type: web
     name: devdatasorter-bot
     env: python
-    buildCommand: pip install -r requirements-render.txt
+    plan: free
+    region: oregon
+    buildCommand: pip install --upgrade pip && pip install -r requirements-render.txt
     startCommand: python main.py
     envVars:
       - key: TELEGRAM_BOT_TOKEN
@@ -11,6 +13,9 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: llama-3.1-70b-versatile
+      - key: PYTHON_VERSION
+        value: "3.11"
     scaling:
       minInstances: 1
       maxInstances: 1
+    healthCheckPath: /health

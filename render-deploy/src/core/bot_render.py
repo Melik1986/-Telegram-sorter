@@ -29,7 +29,7 @@ class DevDataSorterBot:
     def __init__(self, token: str = None):
         self.token = token or TELEGRAM_BOT_TOKEN
         self.ai_config = get_ai_config()
-        self.storage = ResourceStorage(enable_semantic_search=True)
+        self.storage = ResourceStorage(enable_semantic_search=False)  # Отключаем семантический поиск для стабильности
         self.classifier = ContentClassifier()
         self.rate_limiter = RateLimiter()
         self.command_interpreter = NaturalLanguageCommandInterpreter(self.classifier)
@@ -47,15 +47,12 @@ class DevDataSorterBot:
         self.app.add_handler(CommandHandler("help", self.help_command))
         self.app.add_handler(CommandHandler("list", self.list_command))
         self.app.add_handler(CommandHandler("search", self.search_command))
-        self.app.add_handler(CommandHandler("semantic_search", self.semantic_search_command))
         self.app.add_handler(CommandHandler("stats", self.stats_command))
         self.app.add_handler(CommandHandler("categories", self.categories_command))
         self.app.add_handler(CommandHandler("export", self.export_command))
         
         # Message handlers
         self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, self.handle_message))
-        self.app.add_handler(MessageHandler(filters.Document.ALL, self.handle_file))
-        self.app.add_handler(MessageHandler(filters.PHOTO, self.handle_photo))
         
         # Callback query handler
         self.app.add_handler(CallbackQueryHandler(self.handle_callback))
@@ -68,25 +65,23 @@ class DevDataSorterBot:
 
 🔧 Основные возможности:
 • Автоматическая классификация контента
-• Семантический поиск по ресурсам
-• Обработка файлов и изображений
+• Поиск по ресурсам
 • Интеллектуальные команды на естественном языке
 • Экспорт и резервное копирование
 
 🚀 Команды:
 /help - Полная справка
 /search <запрос> - Поиск ресурсов
-/semantic_search <запрос> - Семантический поиск
 /list - Список ресурсов
 /stats - Статистика
 /categories - Категории
 
-💡 Просто отправьте мне текст, ссылки, файлы или используйте естественные команды:
+💡 Просто отправьте мне текст, ссылки или используйте естественные команды:
 • "найди все про React"
 • "покажи статистику"
-• "создай папку для проектов"
+• "список всех ресурсов"
 
-🌟 Версия: Render Full"""
+🌟 Версия: Render Optimized"""
         
         await update.message.reply_text(welcome_text)
     
@@ -98,7 +93,6 @@ class DevDataSorterBot:
 /start - Запустить бота
 /help - Показать эту справку
 /search <запрос> - Поиск ресурсов
-/semantic_search <запрос> - Семантический поиск
 /list [категория] - Список ресурсов
 /stats - Статистика бота
 /categories - Все категории
@@ -108,18 +102,7 @@ class DevDataSorterBot:
 Используйте естественный язык:
 • "найди код на Python"
 • "покажи все документацию"
-• "семантический поиск алгоритмы"
 • "статистика по категориям"
-• "создай папку для React проектов"
-
-📁 Поддержка файлов:
-• Отправляйте изображения для анализа
-• Загружайте документы (PDF, TXT, DOCX)
-• Автоматическая классификация файлов
-
-🔍 Типы поиска:
-• Текстовый поиск - быстрый поиск по ключевым словам
-• Семантический поиск - поиск по смыслу и контексту
 
 📊 Категории:
 • Frontend (React, Vue, Angular)
@@ -140,9 +123,7 @@ class DevDataSorterBot:
         if not context.args:
             await update.message.reply_text(
                 "🔍 Использование: /search <запрос>\n"
-                "Пример: /search React hooks\n\n"
-                "Для семантического поиска используйте:\n"
-                "/semantic_search <запрос>"
+                "Пример: /search React hooks"
             )
             return
         
@@ -183,68 +164,6 @@ class DevDataSorterBot:
         except Exception as e:
             logger.error(f"Search error: {e}")
             await status_msg.edit_text("❌ Ошибка поиска")
-    
-    async def semantic_search_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle /semantic_search command."""
-        if not context.args:
-            await update.message.reply_text(
-                "🧠 Использование: /semantic_search <запрос>\n"
-                "Пример: /semantic_search алгоритмы сортировки\n\n"
-                "Семантический поиск находит ресурсы по смыслу, а не только по ключевым словам."
-            )
-            return
-        
-        user_id = update.effective_user.id
-        
-        # Rate limiting
-        if not self.rate_limiter.is_allowed(user_id):
-            await update.message.reply_text(
-                "⏰ Слишком много запросов. Подождите немного."
-            )
-            return
-        
-        query = ' '.join(context.args)
-        
-        # Show processing message
-        status_msg = await update.message.reply_text("🧠 Семантический поиск...")
-        
-        try:
-            # Check if semantic search is available
-            if not hasattr(self.storage, 'semantic_search_engine') or self.storage.semantic_search_engine is None:
-                await status_msg.edit_text(
-                    "🧠 Семантический поиск недоступен. Используется обычный поиск."
-                )
-                results = self.storage.search_resources(query, use_semantic=False)
-            else:
-                results = await self.storage.semantic_search_resources(query, limit=10)
-            
-            if not results:
-                response = f"🧠 По семантическому запросу '{query}' ничего не найдено"
-            else:
-                response = f"🧠 Найдено {len(results)} семантических результатов по запросу '{query}':\n\n"
-                
-                for i, result in enumerate(results, 1):
-                    if isinstance(result, dict) and 'resource' in result:
-                        # Semantic search result format
-                        resource = result['resource']
-                        score = result.get('score', 0.0)
-                        response += f"{i}. 📁 {resource.get('category', 'Unknown')}\n"
-                        response += f"   📝 {resource['content'][:100]}...\n"
-                        response += f"   🎯 Релевантность: {score:.2f}\n"
-                        response += f"   🆔 {resource['id']}\n\n"
-                    else:
-                        # Regular search result format
-                        response += f"{i}. 📁 {result.get('category', 'Unknown')}\n"
-                        response += f"   📝 {result['content'][:100]}...\n"
-                        if result.get('similarity_score'):
-                            response += f"   🎯 Релевантность: {result['similarity_score']:.2f}\n"
-                        response += f"   🆔 {result['id']}\n\n"
-            
-            await status_msg.edit_text(response)
-            
-        except Exception as e:
-            logger.error(f"Semantic search error: {e}")
-            await status_msg.edit_text("❌ Ошибка семантического поиска")
     
     async def list_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /list command."""
@@ -288,7 +207,6 @@ class DevDataSorterBot:
 📂 Категорий: {stats['categories_count']}
 🎯 Средняя уверенность: {stats.get('average_confidence', 0):.1%}
 🔗 Всего URL: {stats.get('total_urls', 0)}
-📁 Файловых ресурсов: {stats.get('file_resources', 0)}
 
 📈 Топ-5 категорий:"""
             
@@ -300,16 +218,7 @@ class DevDataSorterBot:
             if stats.get('popular_category'):
                 response += f"\n\n🏆 Самая популярная: {stats['popular_category']}"
             
-            # Semantic search info
-            if stats.get('semantic_search_enabled'):
-                response += f"\n\n🧠 Семантический поиск: включен"
-                if 'semantic_search' in stats:
-                    sem_stats = stats['semantic_search']
-                    response += f"\n   📊 Индексированных ресурсов: {sem_stats.get('indexed_resources', 0)}"
-            else:
-                response += f"\n\n🧠 Семантический поиск: отключен"
-            
-            response += f"\n\n💡 Версия: Render Full"
+            response += f"\n\n💡 Версия: Render Optimized"
             
             await update.message.reply_text(response)
             
@@ -417,17 +326,6 @@ class DevDataSorterBot:
                 else:
                     await self._send_search_help(update, language)
             
-            elif command_type == CommandType.SEMANTIC_SEARCH:
-                query = parameters.get('query', '')
-                if query:
-                    if hasattr(self.storage, 'semantic_search_engine') and self.storage.semantic_search_engine:
-                        results = await self.storage.semantic_search_resources(query, limit=10)
-                    else:
-                        results = self.storage.search_resources(query, use_semantic=False)
-                    await self._send_semantic_search_results(update, query, results, language)
-                else:
-                    await self._send_semantic_search_help(update, language)
-            
             elif command_type == CommandType.LIST:
                 category = parameters.get('category', 'all')
                 await self._execute_list_command(update, context, category, language)
@@ -505,14 +403,6 @@ class DevDataSorterBot:
             logger.error(f"Error processing content: {e}")
             await status_msg.edit_text("❌ Произошла ошибка при обработке контента")
     
-    async def handle_file(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle file uploads."""
-        await update.message.reply_text("📁 Обработка файлов временно недоступна в этой версии")
-    
-    async def handle_photo(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Handle photo uploads."""
-        await update.message.reply_text("🖼️ Обработка изображений временно недоступна в этой версии")
-    
     async def handle_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle callback queries."""
         query = update.callback_query
@@ -552,50 +442,12 @@ class DevDataSorterBot:
         
         await update.message.reply_text(response)
     
-    async def _send_semantic_search_results(self, update: Update, query: str, results: List[Dict], language: str):
-        """Send semantic search results."""
-        if not results:
-            if language == 'ru':
-                response = f"🧠 По семантическому запросу '{query}' ничего не найдено"
-            else:
-                response = f"🧠 No semantic results found for '{query}'"
-        else:
-            if language == 'ru':
-                response = f"🧠 Найдено {len(results)} семантических результатов по запросу '{query}':\n\n"
-            else:
-                response = f"🧠 Found {len(results)} semantic results for '{query}':\n\n"
-            
-            for i, result in enumerate(results, 1):
-                if isinstance(result, dict) and 'resource' in result:
-                    resource = result['resource']
-                    score = result.get('score', 0.0)
-                    response += f"{i}. 📁 {resource.get('category', 'Unknown')}\n"
-                    response += f"   📝 {resource['content'][:100]}...\n"
-                    response += f"   🎯 Релевантность: {score:.2f}\n"
-                    response += f"   🆔 {resource['id']}\n\n"
-                else:
-                    response += f"{i}. 📁 {result.get('category', 'Unknown')}\n"
-                    response += f"   📝 {result['content'][:100]}...\n"
-                    if result.get('similarity_score'):
-                        response += f"   🎯 Релевантность: {result['similarity_score']:.2f}\n"
-                    response += f"   🆔 {result['id']}\n\n"
-        
-        await update.message.reply_text(response)
-    
     async def _send_search_help(self, update: Update, language: str):
         """Send search help."""
         if language == 'ru':
             response = "🔍 Укажите что искать. Например: 'найди код на Python'"
         else:
             response = "🔍 Please specify what to search for. Example: 'find Python code'"
-        await update.message.reply_text(response)
-    
-    async def _send_semantic_search_help(self, update: Update, language: str):
-        """Send semantic search help."""
-        if language == 'ru':
-            response = "🧠 Укажите запрос для семантического поиска. Например: 'семантический поиск алгоритмы сортировки'"
-        else:
-            response = "🧠 Please specify query for semantic search. Example: 'semantic search sorting algorithms'"
         await update.message.reply_text(response)
     
     async def _execute_list_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE, category: str, language: str):
@@ -653,25 +505,3 @@ class DevDataSorterBot:
         except Exception as e:
             logger.error(f"Bot error: {e}")
             raise
-    
-    async def run_async(self):
-        """Run the bot in async mode for better performance."""
-        logger.info("🚀 Starting DevDataSorter bot (async mode)...")
-        logger.info(f"🤖 AI Provider: {self.ai_config['provider']}")
-        
-        try:
-            async with self.app:
-                await self.app.start()
-                await self.app.updater.start_polling(
-                    allowed_updates=Update.ALL_TYPES,
-                    drop_pending_updates=True
-                )
-                
-                # Keep running
-                await asyncio.Event().wait()
-                
-        except Exception as e:
-            logger.error(f"Bot error: {e}")
-            raise
-        finally:
-            await self.app.stop()
