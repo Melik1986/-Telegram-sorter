@@ -1,0 +1,8 @@
+# Минимальные зависимости для Railway
+python-telegram-bot==20.7
+requests==2.31.0
+groq==0.4.1
+python-dotenv==1.0.0
+
+# Опционально для улучшенной работы
+colorama==0.4.6
