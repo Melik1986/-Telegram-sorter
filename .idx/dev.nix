@@ -48,6 +48,8 @@
       };
       # Runs when the workspace is (re)started
       onStart = {
+        # Activate the Nix development environment to make git and other packages available
+        activate-nix-env = "nix develop";
         # Example: start a background task to watch and re-build backend code
         # watch-backend = "npm run watch-backend";
       };
